@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac51e60b695e8e74d9f588b5e099fe75, type: 3}
+  m_Name: Basic Config
+  m_EditorClassIdentifier: 
+  _addConnectionOnCreation: 1
+  _creaturePrefab: {fileID: 3452820318685493774, guid: c7801cdcca9ef3141a5796339bf48388,
+    type: 3}
+  _populationSize: 200
+  _percentageToKeep: 30
+  _crossover: 1
+  _disabledConnectionInheritChance: 0.75
+  _bias: 1
+  _inputNodeNumber: 10
+  _hiddenNodeStartNumberByLayer: 
+  _outputNodeNumber: 2
+  _activationType: 1
+  _timeOut: 1000
+  _newWeightRange: {x: -0.5, y: 0.5}
+  _genomeMutations: 1
+  _addConnectionRate: 0.05
+  _addNodeRate: 0.004
+  _enableDisableRate: 0.04
+  _mutationRate: 0.8
+  _perturbingProbability: 0.9
+  _species: 0
+  _maxGenomeDistance: 3
+  _disjointMutator: 1
+  _excessMutator: 1
+  _avgDiffMutator: 0.4
