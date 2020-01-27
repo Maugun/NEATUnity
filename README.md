@@ -10,7 +10,7 @@ This project include a demo of self driving car using NEAT.
 ### Download
 
 * [Download Link](https://github.com/Maugun/NEATUnity/releases) (Recommended)
-* [Web Version](https://maugun.github.io/NEATUnity/Web/index.html) (Not optimal)
+* [Web Version](https://maugun.github.io/NEATUnity/Web/) (Not optimal)
 
 ## Built With
 
