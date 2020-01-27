@@ -1,7 +1,7 @@
 # NEATUnity
 
-**NEATUnity** is an implementation of [**NEAT (NeuroEvolution of Augmenting Topologies)**](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) in Unity.
-This project include an exemple of self driving car using NEAT.
+**NEATUnity** is an implementation of [**NEAT (NeuroEvolution of Augmenting Topologies)**](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) algorithm in Unity.
+This project include a demo of self driving car using NEAT.
 
 ### Prerequisites
 
