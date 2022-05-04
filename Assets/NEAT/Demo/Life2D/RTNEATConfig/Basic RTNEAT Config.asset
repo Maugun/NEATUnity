@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cc0d56da1e1e864fa3fcae0512230f4, type: 3}
+  m_Name: Basic RTNEAT Config
+  m_EditorClassIdentifier: 
+  addConnectionOnCreation: 0
+  creaturePrefab: {fileID: 3958765786033535453, guid: d95655de5103c5f439d9dc8202f30350,
+    type: 3}
+  startPopulation: 100
+  maxPopulation: 200
+  minPopulation: 50
+  percentageToKeep: 30
+  disabledConnectionInheritChance: 0.75
+  bias: 1
+  hiddenNodeStartNumberByLayer: 
+  outputNodeNumber: 2
+  activationType: 1
+  timeOut: 1000
+  newWeightRange: {x: -4, y: 4}
+  genomeMutations: 1
+  addConnectionRate: 0.05
+  addNodeRate: 0.03
+  enableDisableRate: 0.04
+  mutationRate: 0.8
+  perturbingProbability: 0.9
+  species: 0
+  maxGenomeDistance: 3
+  disjointMutator: 1
+  excessMutator: 1
+  avgDiffMutator: 0.4

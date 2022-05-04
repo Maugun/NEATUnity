@@ -87,22 +87,20 @@ namespace NEAT
             if (NeuronTypeValue == NeuronType.INPUT)
             {
                 Output = sum;
+                return Output;
             }
-            else
-            {
-                // Bias
-                if (Bias)
-                    sum += 1f;
 
-                switch (ActivationTypeValue)
-                {
-                    case ActivationType.SIGMOID:
-                        Output = SigmoidActivation(sum);
-                        break;
-                    case ActivationType.TANH:
-                        Output = TanhActivation(sum);
-                        break;
-                }
+            // Bias
+            if (Bias) sum += 1f;
+
+            switch (ActivationTypeValue)
+            {
+                case ActivationType.SIGMOID:
+                    Output = SigmoidActivation(sum);
+                    break;
+                case ActivationType.TANH:
+                    Output = TanhActivation(sum);
+                    break;
             }
 
             return Output;
@@ -115,16 +113,11 @@ namespace NEAT
         public bool IsReady()
         {
             // Check if all Inputs are not null
-            bool isReady = true;
             foreach (float? input in _inputs)
             {
-                if (input == null)
-                {
-                    isReady = false;
-                    break;
-                }
+                if (input == null) return false;
             }
-            return isReady;
+            return true;
         }
 
         /// <summary>
@@ -134,17 +127,15 @@ namespace NEAT
         /// <returns>True if success, False if no free Input</returns>
         public bool FeedInput(float input)
         {
-            bool success = false;
             for (int i = 0; i < _inputs.Length; i++)
             {
                 if (_inputs[i] == null)
                 {
                     _inputs[i] = input;
-                    success = true;
-                    break;
+                    return true;
                 }
             }
-            return success;
+            return false;
         }
 
         /// <summary>
@@ -164,7 +155,7 @@ namespace NEAT
         /// <returns></returns>
         private float SigmoidActivation(float inputsSum)
         {
-            return (1f / (1f + (float)Math.Exp(/*-4.9d * */inputsSum)));
+            return (1f / (1f + (float)Math.Exp(/*-4.9d * */-inputsSum)));
         }
 
         /// <summary>

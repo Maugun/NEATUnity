@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - Checkpoint
+  - Creature
+  - Food
+  - Wall
   layers:
   - Default
   - TransparentFX
@@ -16,7 +19,7 @@ TagManager:
   - 
   - Player
   - Wall
-  - 
+  - Seeable
   - 
   - 
   - 

@@ -34,7 +34,7 @@ namespace NEAT
             _connectionInnovation = connectionInnovation;
 
             _genomes = new List<Genome>();
-            for (int i = 0; i < _config._populationSize; ++i)
+            for (int i = 0; i < _config.populationSize; ++i)
                 _genomes.Add(Genome.GenomeRandomWeights(startingGenome, _r));
 
             _nextEvaluationGenomes = new List<Genome>();
@@ -67,7 +67,7 @@ namespace NEAT
             //    log += g.Fitness + "\n";
             //Debug.Log(log);
 
-            if (_config._species)
+            if (_config.species)
             {
                 // Create Species
                 SpeciesCreation();
@@ -82,8 +82,8 @@ namespace NEAT
                 BestFitness = _genomes[0].Fitness;
 
                 // Keep Best Genomes for Next Evaluation
-                int maxToKeep = ((_config._populationSize * _config._percentageToKeep) / 100) - 1;
-                for (int i = 0; i <= maxToKeep; ++i)
+                int maxToKeep = ((_config.populationSize * _config.percentageToKeep) / 100) - 1;
+                for (int i = 0; i <= maxToKeep; i++)
                     _nextEvaluationGenomes.Add(_genomes[i]);
             }
 
@@ -102,8 +102,7 @@ namespace NEAT
         /// </summary>
         private void ResetForEvaluation()
         {
-            foreach (Species species in _species)
-                species.Reset(_r);
+            foreach (Species species in _species) species.Reset(_r);
             _genomesSpecies.Clear();
             _nextEvaluationGenomes.Clear();
             BestFitness = -1f;
@@ -124,7 +123,7 @@ namespace NEAT
                 foreach (Species species in _species)
                 {
                     // If Genome Distance < Max Genome Distance => Genome is from this Species
-                    if (Genome.GenomeDistance(genome, species.Genome, _config._disjointMutator, _config._excessMutator, _config._avgDiffMutator) < _config._maxGenomeDistance)
+                    if (Genome.GenomeDistance(genome, species.Genome, _config.disjointMutator, _config.excessMutator, _config.avgDiffMutator) < _config.maxGenomeDistance)
                     {
                         species.Genomes.Add(genome);
                         _genomesSpecies.Add(genome, species);
@@ -201,7 +200,7 @@ namespace NEAT
             int enableDisableConnectionNb = 0;
             _mutationLogs = "";
 
-            while (_nextEvaluationGenomes.Count() < _config._populationSize)
+            while (_nextEvaluationGenomes.Count() < _config.populationSize)
             {
                 Genome child = null;
                 Genome mom = null;
@@ -210,9 +209,9 @@ namespace NEAT
                 // Get Child
 
                 Species species = null;
-                if (_config._species)
-                    species = GetRandomSpecies(_r);
-                if (_config._crossover)
+                int maxToKeep = ((_config.populationSize * _config.percentageToKeep) / 100) - 1;
+                if (_config.species) species = GetRandomSpecies(_r);
+                if (_config.crossover)
                 {
                     if (species != null)
                     {
@@ -221,60 +220,46 @@ namespace NEAT
                     }
                     else
                     {
-                        int maxToKeep = ((_config._populationSize * _config._percentageToKeep) / 100) - 1;
                         mom = _genomes[UnityEngine.Random.Range(0, maxToKeep)];
                         dad = _genomes[UnityEngine.Random.Range(0, maxToKeep)];
                     }
 
                     // Crossover between Mom & Dad
-                    if (mom.Fitness >= dad.Fitness)
-                        child = Genome.Crossover(mom, dad, _r, _config._disabledConnectionInheritChance);
-                    else
-                        child = Genome.Crossover(dad, mom, _r, _config._disabledConnectionInheritChance);
+                    child = mom.Fitness >= dad.Fitness ? Genome.Crossover(mom, dad, _r, _config.disabledConnectionInheritChance) : Genome.Crossover(dad, mom, _r, _config.disabledConnectionInheritChance);
                 }
                 else
                 {
-                    if (species != null)
-                    {
-                        child = new Genome(GetRandomGenome(species, _r));
-                    }
-                    else
-                    {
-                        int maxToKeep = ((_config._populationSize * _config._percentageToKeep) / 100) - 1;
-                        child = new Genome(_genomes[UnityEngine.Random.Range(0, maxToKeep)]);
-                    }
+                    child = species != null ? new Genome(GetRandomGenome(species, _r)) : new Genome(_genomes[UnityEngine.Random.Range(0, maxToKeep)]);
                 }
 
                 // Weights Mutation
-                if ((float)_r.NextDouble() < _config._mutationRate)
+                if ((float)_r.NextDouble() < _config.mutationRate)
                 {
                     child.WeightsMutation(_r);
                     weightMutationNb++;
                 }
 
-                if (_config._genomeMutations)
+                if (_config.genomeMutations)
                 {
                     // Add Connection Mutation
-                    if ((float)_r.NextDouble() < _config._addConnectionRate)
+                    if ((float)_r.NextDouble() < _config.addConnectionRate)
                     {
                         // If for Logs
-                        if (child.AddConnectionMutation(_r, _connectionInnovation, 10))
-                            addConnectionNb++;
+                        if (child.AddConnectionMutation(_r, _connectionInnovation, 10)) addConnectionNb++;
                     }
 
                     // Add Node Mutation
-                    if ((float)_r.NextDouble() < _config._addNodeRate)
+                    if ((float)_r.NextDouble() < _config.addNodeRate)
                     {
                         child.AddNodeMutation(_r, _connectionInnovation, _nodeInnovation);
                         addNodeNb++;
                     }
 
                     // Enable/Disable a Random Connection
-                    if ((float)_r.NextDouble() < _config._enableDisableRate)
+                    if ((float)_r.NextDouble() < _config.enableDisableRate)
                     {
                         // If for Logs
-                        if (child.EnableOrDisableRandomConnection())
-                            enableDisableConnectionNb++;
+                        if (child.EnableOrDisableRandomConnection()) enableDisableConnectionNb++;
                     }
                 }
 
@@ -288,10 +273,10 @@ namespace NEAT
                 addConnectionNb,
                 addNodeNb,
                 enableDisableConnectionNb,
-                _config._crossover,
-                _config._genomeMutations,
-                _config._species
-                );
+                _config.crossover,
+                _config.genomeMutations,
+                _config.species
+            );
 
             _genomes.Clear();
             _genomes = new List<Genome>(_nextEvaluationGenomes);
@@ -318,14 +303,12 @@ namespace NEAT
             foreach (Species species in _species)
             {
                 totalAdjustedFitnessSum += species.TotalAdjustedFitness;
-                if (totalAdjustedFitnessSum >= totalAdjustedFitnessSelection)
-                    return species;
+                if (totalAdjustedFitnessSum >= totalAdjustedFitnessSelection) return species;
             }
 
             // If no Species found return the Best one
             List<Species> speciesOrderedByFitnessDesc = _species.OrderByDescending(o => o.TotalAdjustedFitness).ToList();
-            if (speciesOrderedByFitnessDesc.Count == 0)
-                return null;
+            if (speciesOrderedByFitnessDesc.Count == 0) return null;
             return speciesOrderedByFitnessDesc[0];
         }
 
@@ -349,8 +332,7 @@ namespace NEAT
             foreach (Genome genome in species.Genomes)
             {
                 totalFitnessSum += genome.Fitness;
-                if (totalFitnessSum >= totalFitnessSelection)
-                    return genome;
+                if (totalFitnessSum >= totalFitnessSelection) return genome;
             }
 
             // If no Genome found return the Best one
@@ -398,7 +380,7 @@ namespace NEAT
                 GetSpeciesNumber(),
                 GetMutationLogs(),
                 BestGenome.ToString()
-                );
+            );
         }
     }
 }

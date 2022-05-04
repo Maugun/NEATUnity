@@ -15,12 +15,9 @@ namespace NEAT
 
         public int Compare(FitnessGenome fg1, FitnessGenome fg2)
         {
-            if (fg1.Fitness > fg2.Fitness)
-                return 1;
-            else if (fg1.Fitness < fg2.Fitness)
-                return -1;
-            else
-                return 0;
+            if (fg1.Fitness > fg2.Fitness) return 1;
+            if (fg1.Fitness < fg2.Fitness) return -1;
+            return 0;
         }
     }
 }

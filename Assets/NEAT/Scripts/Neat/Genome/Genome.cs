@@ -8,7 +8,7 @@ namespace NEAT
 {
     public class Genome
     {
-        public static int _genomeIdCounter = 0;                                                     // Genome Id Counter
+        public static int genomeIdCounter = 0;                                                     // Genome Id Counter
 
         public Dictionary<int, NodeGene> Nodes { get; set; }                                        // Nodes Dictionary
         public Dictionary<int, ConnectionGene> Connections { get; set; }                            // Connections Dictionary
@@ -24,8 +24,8 @@ namespace NEAT
             Nodes = new Dictionary<int, NodeGene>();
             Connections = new Dictionary<int, ConnectionGene>();
             Fitness = 0f;
-            Id = Genome._genomeIdCounter;
-            Genome._genomeIdCounter++;
+            Id = Genome.genomeIdCounter;
+            Genome.genomeIdCounter++;
         }
 
         public Genome(Genome genome)
@@ -35,11 +35,11 @@ namespace NEAT
             Nodes = new Dictionary<int, NodeGene>();
             Connections = new Dictionary<int, ConnectionGene>();
             Fitness = genome.Fitness;
-            Id = Genome._genomeIdCounter;
-            Genome._genomeIdCounter++;
+            Id = Genome.genomeIdCounter;
+            Genome.genomeIdCounter++;
 
             // Nodes Deep Copy
-            foreach(int nodeId in genome.Nodes.Keys)
+            foreach (int nodeId in genome.Nodes.Keys)
                 Nodes.Add(nodeId, new NodeGene(genome.Nodes[nodeId]));
 
             // Connections Deep Copy
@@ -52,9 +52,7 @@ namespace NEAT
             Genome newGenome = new Genome(genome);
 
             foreach (ConnectionGene connection in newGenome.Connections.Values)
-            {
                 connection.Weight = UnityEngine.Random.Range(genome.NewWeightRange.x, genome.NewWeightRange.y);
-            }
 
             return newGenome;
         }
@@ -69,17 +67,9 @@ namespace NEAT
             foreach (ConnectionGene connection in Connections.Values)
             {
                 float weight = connection.Weight;
+                float randomWeight = UnityEngine.Random.Range(NewWeightRange.x, NewWeightRange.y);
 
-                if ((float)r.NextDouble() < PerturbingProbability)
-                {
-                    weight *= UnityEngine.Random.Range(NewWeightRange.x, NewWeightRange.y);
-                }
-                else
-                {
-                    weight = UnityEngine.Random.Range(NewWeightRange.x, NewWeightRange.y);
-                }
-
-                // Assign new Weight
+                weight = (float)r.NextDouble() < PerturbingProbability ? weight * randomWeight : randomWeight;
                 connection.Weight = weight;
             }
         }
@@ -96,7 +86,7 @@ namespace NEAT
             bool success = false;
 
             // Try maxTries times
-            for (int tries = 0; tries < maxTries && !success; ++tries)
+            for (int tries = 0; tries < maxTries && !success; tries++)
             {
                 // Get 2 Random Nodes & a Random Weight
                 List<int> nodeInnovationIds = new List<int>(Nodes.Keys);
@@ -104,10 +94,13 @@ namespace NEAT
                 NodeGene node2 = Nodes[nodeInnovationIds[r.Next(nodeInnovationIds.Count)]];
 
                 // Sigmoid Weights
-                //float weight = (float)r.NextDouble() * 2f - 1f;
+                // float weight = (float)r.NextDouble() * 2f - 1f;
 
                 // Tanh Weights
-                float weight = UnityEngine.Random.Range(-0.5f, 0.5f);
+                // float weight = UnityEngine.Random.Range(-0.5f, 0.5f);
+
+                // Config Weights
+                float weight = UnityEngine.Random.Range(NewWeightRange.x, NewWeightRange.y);
 
                 // Is Reversed ?
                 if ((node1.Type == NodeGene.TYPE.HIDDEN && node2.Type == NodeGene.TYPE.INPUT) ||
@@ -136,8 +129,7 @@ namespace NEAT
                         break;
                     }
                 }
-                if (connectionExists)
-                    continue;
+                if (connectionExists) continue;
 
                 // Circular structure ?
                 bool connectionImpossible = false;
@@ -174,8 +166,7 @@ namespace NEAT
                         break;
                     }
                 }
-                if (connectionImpossible)
-                    continue;
+                if (connectionImpossible) continue;
 
                 // Add new Connection
                 ConnectionGene newConnection = new ConnectionGene(
@@ -204,11 +195,9 @@ namespace NEAT
             List<ConnectionGene> enabledConnections = new List<ConnectionGene>();
             foreach (ConnectionGene c in Connections.Values)
             {
-                if (c.IsEnable)
-                    enabledConnections.Add(c);
+                if (c.IsEnable) enabledConnections.Add(c);
             }
-            if (enabledConnections.Count == 0)
-                return;
+            if (enabledConnections.Count == 0) return;
 
             // Get a Random Connection
             ConnectionGene connection = enabledConnections[r.Next(enabledConnections.Count)];
@@ -238,13 +227,10 @@ namespace NEAT
         {
             // Get List of Connection
             List<ConnectionGene> connections = Connections.Values.ToList();
-            if (connections.Count < 1)
-                return false;
-
-            bool success = false;
+            if (connections.Count < 1) return false;
 
             // Try maxTries times
-            for (int tries = 0; tries < maxTries && !success; ++tries)
+            for (int tries = 0; tries < maxTries; tries++)
             {
                 // Get a Random Connection
                 ConnectionGene connection = connections[UnityEngine.Random.Range(0, Connections.Values.Count)];
@@ -258,12 +244,13 @@ namespace NEAT
                     int outNodeInputNb = 0;
                     foreach (ConnectionGene c in connections)
                     {
+                        //TODO
                         // Check if inNode Connection still have an Output Connection
-                        if (c.InNode == inNode)
+                        if (c.InNode == outNode)
                             inNodeOutputNb++;
 
                         // Check if outNode Connection still have an Input Connection
-                        if (c.InNode == inNode)
+                        if (c.OutNode == inNode)
                             outNodeInputNb++;
                     }
 
@@ -271,18 +258,18 @@ namespace NEAT
                     if (inNodeOutputNb > 1 && outNodeInputNb > 1)
                     {
                         connection.IsEnable = false;
-                        success = true;
-                    } 
+                        return true;
+                    }
                 }
                 else
                 {
                     // Enable the Connection
                     connection.IsEnable = true;
-                    success = true;
+                    return true;
                 }
             }
-            
-            return success;
+
+            return false;
         }
         #endregion =======================================================================================================#
 
@@ -358,7 +345,7 @@ namespace NEAT
             int maxNodeId = GetMaxInnovationId(new List<int>(genome1.Nodes.Keys), new List<int>(genome2.Nodes.Keys));
 
             // Count Matching Nodes
-            for (int i = 0; i <= maxNodeId; ++i)
+            for (int i = 0; i <= maxNodeId; i++)
             {
                 if (genome1.Nodes.ContainsKey(i) && genome2.Nodes.ContainsKey(i))
                     match++;
@@ -381,7 +368,7 @@ namespace NEAT
             int maxConnectionId = GetMaxInnovationId(new List<int>(genome1.Connections.Keys), new List<int>(genome2.Connections.Keys));
 
             // Count Matching Connections
-            for (int i = 0; i <= maxConnectionId; ++i)
+            for (int i = 0; i <= maxConnectionId; i++)
             {
                 if (genome1.Connections.ContainsKey(i) && genome2.Connections.ContainsKey(i))
                     match++;
@@ -417,7 +404,7 @@ namespace NEAT
             int maxNodeId = genome1MaxNodeId > genome2MaxNodeId ? genome1MaxNodeId : genome2MaxNodeId;
 
             // Count Disjoint Nodes
-            for (int i = 0; i <= maxNodeId; ++i)
+            for (int i = 0; i <= maxNodeId; i++)
             {
                 if (!genome1.Nodes.ContainsKey(i) && genome2.Nodes.ContainsKey(i) && genome1MaxNodeId > i)
                     match++;
@@ -444,7 +431,7 @@ namespace NEAT
             int maxConnectionId = genome1MaxConnectionId > genome2MaxConnectionId ? genome1MaxConnectionId : genome2MaxConnectionId;
 
             // Count Disjoint Connections
-            for (int i = 0; i <= maxConnectionId; ++i)
+            for (int i = 0; i <= maxConnectionId; i++)
             {
                 if (!genome1.Nodes.ContainsKey(i) && genome2.Nodes.ContainsKey(i) && genome1MaxConnectionId > i)
                     match++;
@@ -482,7 +469,7 @@ namespace NEAT
             int maxNodeId = genome1MaxNodeId > genome2MaxNodeId ? genome1MaxNodeId : genome2MaxNodeId;
 
             // Count Excess Nodes
-            for (int i = 0; i <= maxNodeId; ++i)
+            for (int i = 0; i <= maxNodeId; i++)
             {
                 if (!genome1.Nodes.ContainsKey(i) && genome2.Nodes.ContainsKey(i) && genome1MaxNodeId < i)
                     match++;
@@ -509,7 +496,7 @@ namespace NEAT
             int maxConnectionId = genome1MaxConnectionId > genome2MaxConnectionId ? genome1MaxConnectionId : genome2MaxConnectionId;
 
             // Count Excess Connections
-            for (int i = 0; i <= maxConnectionId; ++i)
+            for (int i = 0; i <= maxConnectionId; i++)
             {
                 if (!genome1.Nodes.ContainsKey(i) && genome2.Nodes.ContainsKey(i) && genome1MaxConnectionId < i)
                     match++;
@@ -546,7 +533,7 @@ namespace NEAT
             int maxConnectionId = GetMaxInnovationId(new List<int>(genome1.Connections.Keys), new List<int>(genome2.Connections.Keys));
 
             // Count Weight Diff in Matching Connections
-            for (int i = 0; i <= maxConnectionId; ++i)
+            for (int i = 0; i <= maxConnectionId; i++)
             {
                 if (genome1.Connections.ContainsKey(i) && genome2.Connections.ContainsKey(i))
                 {
@@ -616,8 +603,7 @@ namespace NEAT
             innovationIds.Sort();
 
             // Return Max Innovation Id
-            if (innovationIds.Count == 0)
-                return 0;
+            if (innovationIds.Count == 0) return 0;
             return innovationIds[innovationIds.Count - 1];
         }
 

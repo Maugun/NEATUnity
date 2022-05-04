@@ -62,8 +62,7 @@ namespace NEAT
                 ConnectionGene connection = genome.Connections[connectionId];
 
                 // Ignore Disabled Nodes
-                if (!connection.IsEnable)
-                    continue;
+                if (!connection.IsEnable) continue;
 
                 // Add Output Connection to the Neuron of the emitting Node
                 Neuron emittingNeuron = _neurons[connection.InNode];
@@ -82,12 +81,10 @@ namespace NEAT
         /// <returns>Outputs Node if success, null if error</returns>
         public float[] FeedForward(float[] inputs)
         {
-            if (inputs.Length != _inputIds.Count)
-                return null;
+            if (inputs.Length != _inputIds.Count) return null;
 
             // Reset Neurons & unprocessed Neurons
-            foreach (int key in _neurons.Keys)
-                _neurons[key].Reset();
+            foreach (int key in _neurons.Keys) _neurons[key].Reset();
             _unprocessedNeurons.Clear();
 
             // Add all Neurons to unprocessed Neurons
@@ -102,22 +99,21 @@ namespace NEAT
                 inputNeuron.Calculate();
 
                 // Feed Inputs Neuron Receivers
-                for (int k = 0; k < inputNeuron.OutputIds.Length; k++)
+                for (int j = 0; j < inputNeuron.OutputIds.Length; j++)
                 {
                     // Add the Input to the next Neuron w/ correct Weight for the Connection
-                    Neuron receiver = _neurons[inputNeuron.OutputIds[k]];
-                    receiver.FeedInput(inputNeuron.Output * inputNeuron.OutputWeights[k]);
+                    Neuron receiver = _neurons[inputNeuron.OutputIds[j]];
+                    receiver.FeedInput(inputNeuron.Output * inputNeuron.OutputWeights[j]);
                 }
                 _unprocessedNeurons.Remove(inputNeuron);
             }
 
-            for (int timeout = 0; _unprocessedNeurons.Count > 0; ++timeout)
+            for (int timeout = 0; _unprocessedNeurons.Count > 0; timeout++)
             {
                 // Timeout / Can't solve the Network => return null
-                if (timeout > _timeOut)
-                    return null;
-                    
-                for (int i = 0; i < _unprocessedNeurons.Count; ++i)
+                if (timeout > _timeOut) return null;
+
+                for (int i = 0; i < _unprocessedNeurons.Count; i++)
                 {
                     Neuron neuron = _unprocessedNeurons[i];
 
@@ -125,10 +121,10 @@ namespace NEAT
                     if (neuron.IsReady())
                     {
                         neuron.Calculate();
-                        for (int y = 0; y < neuron.OutputIds.Length; y++)
+                        for (int j = 0; j < neuron.OutputIds.Length; j++)
                         {
-                            int receiverId = neuron.OutputIds[y];
-                            float receiverValue = neuron.Output * neuron.OutputWeights[y];
+                            int receiverId = neuron.OutputIds[j];
+                            float receiverValue = neuron.Output * neuron.OutputWeights[j];
                             _neurons[receiverId].FeedInput(receiverValue);
                         }
                         _unprocessedNeurons.RemoveAt(i);
@@ -145,7 +141,7 @@ namespace NEAT
             return outputs;
         }
 
-        
+
         public override string ToString()
         {
             string str = "";
@@ -163,11 +159,26 @@ namespace NEAT
 
                 // Connections
                 Neuron neuron = _neurons[neuronId];
-                for (int i = 0; i < neuron.OutputIds.Length; ++i)
+                for (int i = 0; i < neuron.OutputIds.Length; i++)
                     str += "==>" + neuron.OutputIds[i] + ", weight: " + neuron.OutputWeights[i] + "\n";
                 str += "\n";
             }
             return str;
+        }
+
+        public Dictionary<int, Neuron> GetNeurons()
+        {
+            return _neurons;
+        }
+
+        public List<int> GetInputIds()
+        {
+            return _inputIds;
+        }
+
+        public List<int> GetOutputIds()
+        {
+            return _outputIds;
         }
     }
 }
