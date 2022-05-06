@@ -16,8 +16,6 @@ namespace NEAT.Demo.SmartCarV2
         public Canvas levelCanvas;
         public Canvas carCanvas;
         public Canvas InGameCanvas;
-        public Text genertionLogUI;
-        public Text currentSpeedUI;
         public List<GameObject> carList;
 
         private NEATConfig _config;
@@ -29,17 +27,25 @@ namespace NEAT.Demo.SmartCarV2
         private InputField _enableDisableInput;
         private InputField _weightMutationsInput;
         private InputField _perturbingProbabilityInput;
+        private bool _timeAttack;
+        private Text _genertionLogUI;
+        public Text _timerUI;
+        private BrainGraph _brainGraph;
+        private RectTransform _brainRectTransform;
+        private Image _speedOne;
+        private Image _speedFive;
+        private Image _speedTen;
 
-        private void Start()
+        private void Awake()
         {
             configurationCanvas.gameObject.SetActive(true);
             levelCanvas.gameObject.SetActive(false);
             carCanvas.gameObject.SetActive(false);
             InGameCanvas.gameObject.SetActive(false);
             InitConfigurationCanvas();
-            levelGenerator.spawnOnlyFirstInList = false;
-            levelGenerator.isCircuit = true;
-            SpeedOne();
+            InitLevelCanvas();
+            InitCarCanvas();
+            InitGameCanvas();
         }
 
         #region Configuration
@@ -191,6 +197,12 @@ namespace NEAT.Demo.SmartCarV2
         #endregion
 
         #region Level
+        private void InitLevelCanvas()
+        {
+            levelGenerator.spawnOnlyFirstInList = false;
+            levelGenerator.isCircuit = true;
+        }
+
         public void HideLevelCanvas()
         {
             levelCanvas.gameObject.SetActive(false);
@@ -222,18 +234,17 @@ namespace NEAT.Demo.SmartCarV2
             levelCanvas.transform.Find("Next").gameObject.SetActive(true);
         }
 
-        public void IsComplex()
-        {
-            levelGenerator.spawnOnlyFirstInList = levelGenerator.spawnOnlyFirstInList ? false : true;
-        }
+        public void IsComplex() { levelGenerator.spawnOnlyFirstInList = levelGenerator.spawnOnlyFirstInList ? false : true; }
 
-        public void IsCircuit()
-        {
-            levelGenerator.isCircuit = levelGenerator.isCircuit ? false : true;
-        }
+        public void IsCircuit() { levelGenerator.isCircuit = levelGenerator.isCircuit ? false : true; }
         #endregion
 
         #region Car
+        private void InitCarCanvas()
+        {
+            _timeAttack = true;
+        }
+
         public void SelectBasicCar()
         {
             SelectCar(1);
@@ -247,37 +258,75 @@ namespace NEAT.Demo.SmartCarV2
         private void SelectCar(int index)
         {
             neatManager.config.creaturePrefab = carList[index];
+            _config.creaturePrefab.GetComponent<DemoCarController>().timeAttack = _timeAttack;
             carCanvas.gameObject.SetActive(false);
             InGameCanvas.gameObject.SetActive(true);
             neatManager.start = true;
         }
+
+        public void IsTimeAttack() { _timeAttack = _timeAttack ? false : true; }
         #endregion
 
         #region InGame
+        private void InitGameCanvas()
+        {
+            _genertionLogUI = InGameCanvas.transform.Find("LogText").GetComponent<Text>();
+            _speedOne = InGameCanvas.transform.Find("SpeedOne").GetComponent<Image>();
+            _speedFive = InGameCanvas.transform.Find("SpeedFive").GetComponent<Image>();
+            _speedTen = InGameCanvas.transform.Find("SpeedTen").GetComponent<Image>();
+            _timerUI = InGameCanvas.transform.Find("TimerTxt").GetComponent<Text>();
+            _brainGraph = InGameCanvas.transform.Find("Brain").GetComponent<BrainGraph>();
+            _brainRectTransform = _brainGraph.transform.GetComponent<RectTransform>();
+            SpeedOne();
+
+        }
+
         public void SpeedOne()
         {
-            Speed(1f);
+            _speedOne.color = Color.green;
+            _speedFive.color = Color.white;
+            _speedTen.color = Color.white;
+            timeScale.timeScale = 1f;
         }
 
         public void SpeedFive()
         {
-            Speed(5f);
+            _speedOne.color = Color.white;
+            _speedFive.color = Color.green;
+            _speedTen.color = Color.white;
+            timeScale.timeScale = 5f;
         }
 
         public void SpeedTen()
         {
-            Speed(10f);
-        }
-
-        public void Speed(float speed)
-        {
-            timeScale.timeScale = speed;
-            currentSpeedUI.text = "Current: " + speed;
+            _speedOne.color = Color.white;
+            _speedFive.color = Color.white;
+            _speedTen.color = Color.green;
+            timeScale.timeScale = 10f;
         }
 
         public void UpdateGenerationLog(string log)
         {
-            genertionLogUI.text = log;
+            _genertionLogUI.text = log;
+        }
+
+        public void UpdateTimer(float time)
+        {
+            _timerUI.text = time.ToString("F");
+        }
+
+        public void UpdateBrainGraphWithCurrentBest()
+        {
+            UpdateBrainGraph(CreatureNeuralNetwork.BestNN.NeuralNetwork);
+        }
+
+        public void UpdateBrainGraph(NeuralNetwork bestNN)
+        {
+            _brainRectTransform.rotation = Quaternion.AngleAxis(0f, Vector3.forward);
+            _brainGraph.ClearGraph();
+            _brainGraph.SetNeuralNetwork(bestNN);
+            _brainGraph.CreateGraph();
+            _brainRectTransform.rotation = Quaternion.AngleAxis(-90f, Vector3.forward);
         }
         #endregion
     }

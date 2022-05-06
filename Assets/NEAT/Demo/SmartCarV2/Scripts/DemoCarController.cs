@@ -5,48 +5,55 @@ namespace NEAT.Demo.SmartCarV2
 {
     public class DemoCarController : MonoBehaviour
     {
-        private SimpleCar _demoCarController;                                                   // Demo Car Controller
-        private CarController _unityCarController;                                              // Unity Car Controller
-        private CreatureNeuralNetwork _creatureNN;                                              // Creature Neural Network
-
         public bool IsInit { get; set; }                                                        // Is Initialize ?
-        private float _h = 0f;                                                                  // H
-        private float _v = 0f;                                                                  // V
+        public CreatureNeuralNetwork CreatureNN { get; set; }                                   // Creature Neural Network
 
         public float deathTimer = 5f;                                                           // Death Timer
-        public float viewAngle = 160f;                                                          // View Angle
+        public float viewAngle = 220f;                                                          // View Angle
         public int viewRayNb = 9;                                                               // View Ray Number
+        public int rayCastLen = 20;                                                             // RayCast Length
         public bool addBackRay = true;                                                          // Add a Back Ray ?
-        public int rayCastLen = 12;                                                             // RayCast Length
         public bool drawEyes = true;                                                            // Draw Eyes ?
+        public bool timeAttack = true;
         public string hitLayerName = "Wall";                                                    // Hit Layer Name
 
         [SerializeField]
         private LayerMask _sensorMask;                                                          // Defines the layer of the walls ("Wall")
-        private LineRenderer _lr;                                                               // Line Renderer for RayCast Visualization
 
-        private float _timer = 0f;                                                              // Timer
-        private float _oldFitness = 0f;                                                         // Old Fitness
+        private SimpleCar _simpleCarController;                                                 // Simple Car Controller
+        private CarController _unityCarController;                                              // Unity Car Controller
         private NEATManager _NEATManager;                                                       // NEATManager
-        private float[] _previousFrameInputs = null;                                            // Previous Frame Inputs
+        private LineRenderer _lr;                                                               // Line Renderer for RayCast Visualization
+        private float _h;                                                                       // H
+        private float _v;                                                                       // V
+        private float[] _previousFrameInputs;                                                   // Previous Frame Inputs
+        private float _timer;                                                                   // Timer
 
         void Start()
         {
             _NEATManager = GameObject.Find("NEATManager").GetComponent<NEATManager>();
-            _demoCarController = GetComponent<SimpleCar>();
+            _simpleCarController = GetComponent<SimpleCar>();
             _unityCarController = GetComponent<CarController>();
-            _creatureNN = GetComponent<CreatureNeuralNetwork>();
+            CreatureNN = GetComponent<CreatureNeuralNetwork>();
             _lr = GetComponent<LineRenderer>();
             _lr.positionCount = (viewRayNb + (addBackRay ? 1 : 0)) * 2;
+            Reset();
+        }
+
+        public void Reset()
+        {
+            _h = 0f;
+            _v = 0f;
+            _previousFrameInputs = null;
+            _timer = 0f;
             IsInit = false;
         }
 
         void FixedUpdate()
         {
-            if (!IsInit && _creatureNN.IsInit)
+            if (!IsInit && CreatureNN.IsInit)
             {
                 _timer = 0f;
-                _oldFitness = 0f;
                 IsInit = true;
             }
 
@@ -66,8 +73,8 @@ namespace NEAT.Demo.SmartCarV2
             //    Debug.Log("(h, v) = (" + _h + ", " + _v + ")");
 
             // Move
-            if (_demoCarController != null)
-                _demoCarController.Move(_h, _v);
+            if (_simpleCarController != null)
+                _simpleCarController.Move(_h, _v);
             else
                 _unityCarController.Move(_h, _v, _v, 0f);
 
@@ -83,7 +90,7 @@ namespace NEAT.Demo.SmartCarV2
                 return;
 
             // Feed UNN
-            float[] outputs = _creatureNN.NeuralNetwork.FeedForward(inputs);
+            float[] outputs = CreatureNN.NeuralNetwork.FeedForward(inputs);
 
             // Set Output
             _v = outputs[0];
@@ -126,18 +133,21 @@ namespace NEAT.Demo.SmartCarV2
 
         public void OnCheckPoint()
         {
-            _creatureNN.NeuralNetwork.Fitness += 1;
+            CreatureNN.NeuralNetwork.Fitness += timeAttack ? 1 + (deathTimer - _timer) : 1;
+            CreatureNN.CheckpointPassed++;
+            CreatureNN.Time += _timer;
             _timer = 0f;
+            if (CreatureNeuralNetwork.BestNN.NeuralNetwork.Fitness < CreatureNN.NeuralNetwork.Fitness) CreatureNeuralNetwork.BestNN = CreatureNN;
             //Debug.Log(_creatureNN.Id + " Fitness : " + _creatureNN.NeuralNetwork.Fitness);
         }
 
         public void Die()
         {
-            _creatureNN.IsInit = false;
+            CreatureNN.IsInit = false;
             IsInit = false;
             //Debug.Log(_creatureNN.Id + " DEAD");
             gameObject.SetActive(false);                                                        // Make sure the car is inactive
-            _NEATManager.AddDeadCreature(_creatureNN.Id);                                       // Tell the Evolution Manager that the car is dead
+            _NEATManager.AddDeadCreature(CreatureNN.Id);                                       // Tell the Evolution Manager that the car is dead
         }
 
         private void OnCollisionEnter(Collision collision)

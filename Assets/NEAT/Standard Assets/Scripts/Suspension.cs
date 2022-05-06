@@ -14,12 +14,17 @@ namespace UnityStandardAssets.Vehicles.Car
         private Vector3 m_Origin;
 
 
-        private void Start()
+        private void Awake()
         {
             m_TargetOriginalPosition = wheel.transform.localPosition;
             m_Origin = transform.localPosition;
         }
 
+        private void OnEnable()
+        {
+            wheel.transform.localPosition = m_TargetOriginalPosition;
+            transform.localPosition = m_Origin;
+        }
 
         private void Update()
         {

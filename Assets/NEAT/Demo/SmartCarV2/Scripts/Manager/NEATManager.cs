@@ -12,8 +12,9 @@ namespace NEAT.Demo.SmartCarV2
         public LevelGenerator levelGenerator;                                                   // Level Generator
         public CameraController cameraController;                                               // Camera Controller
         public GenerateLevelUI ui;                                                              // UI
-        public BrainGraph brainGraph;                                                           // Brain Graph
         public NEATConfig config;                                                               // Config
+
+        public float GenerationTimer { get; set; }                                              // Timer for current generation
 
         private List<Transform> _creatureList;                                                  // Creatures List
         private CreatureEvaluator _evaluator = null;                                            // Evaluator
@@ -22,7 +23,6 @@ namespace NEAT.Demo.SmartCarV2
         private List<int> _deadIdList;                                                          // List of Dead Creature's ids
         private int _generationNumber;                                                          // Generation Number
         private Quaternion _spawnRotation;                                                      // SpawnRotation
-        private RectTransform _brainRectTransform;                                              // Brain Rect Transform
 
         private InnovationCounter _nodeInnovation = new InnovationCounter();                    // Node Innovation Counter
         private InnovationCounter _connectionInnovation = new InnovationCounter();              // Connection Innovation Counter
@@ -33,11 +33,13 @@ namespace NEAT.Demo.SmartCarV2
             _deadCreatureNumber = 0;
             _deadIdList = new List<int>();
             _generationNumber = 1;
-            _brainRectTransform = brainGraph.transform.GetComponent<RectTransform>();
+            GenerationTimer = 0f;
         }
 
         private void Update()
         {
+            GenerationTimer += Time.deltaTime;
+            ui.UpdateTimer(GenerationTimer);
             // Delay Start Simulation to let time to all Components to load
             if (start)
             {
@@ -60,12 +62,13 @@ namespace NEAT.Demo.SmartCarV2
 
         private void SpawnCreatures()
         {
+            CreatureNeuralNetwork.BestNN = null;
+
             // Spawn Creatures
             for (int i = 0; i < config.populationSize; i++)
             {
                 GameObject creature = (GameObject)Instantiate(config.creaturePrefab, spawn.position, _spawnRotation);
-                creature.GetComponent<CreatureNeuralNetwork>().IsInit = false;
-                creature.GetComponent<CreatureNeuralNetwork>().Id = i;
+                creature.GetComponent<CreatureNeuralNetwork>().Reset(i);
                 creature.SetActive(false);
                 _creatureList.Add(creature.transform);
             }
@@ -189,7 +192,13 @@ namespace NEAT.Demo.SmartCarV2
             // Logs
             NeuralNetwork bestNN = new NeuralNetwork(_evaluator.BestGenome, config.activationType, config.bias, config.timeOut);
             Debug.Log(_evaluator.GetGenerationLogs() + "\nBest Neural Network:\n" + bestNN.ToString());
-            ui.UpdateGenerationLog("Generation nb: " + _evaluator.GenerationNumber + " | Best Fitness: " + _evaluator.BestFitness);
+            ui.UpdateGenerationLog(string.Format(
+                "Generation: {0} | Fitness: {1} | Checkpoints : {2} | Time: {3}",
+                _evaluator.GenerationNumber,
+                _evaluator.BestFitness,
+                CreatureNeuralNetwork.BestNN.CheckpointPassed,
+                CreatureNeuralNetwork.BestNN.Time
+            ));
 
             // Reset Creatures
             ResetCreatures();
@@ -201,12 +210,7 @@ namespace NEAT.Demo.SmartCarV2
             _generationNumber = _evaluator.GenerationNumber;
 
             // Update Brain Graph
-            _brainRectTransform.rotation = Quaternion.AngleAxis(0f, Vector3.forward);
-            brainGraph.ClearGraph();
-            brainGraph.SetNeuralNetwork(bestNN);
-            brainGraph.CreateGraph();
-            _brainRectTransform.rotation = Quaternion.AngleAxis(-90f, Vector3.forward);
-
+            ui.UpdateBrainGraph(bestNN);
 
             // Start Simulation
             StartSimulation();
@@ -228,20 +232,29 @@ namespace NEAT.Demo.SmartCarV2
                 creature.GetComponent<CreatureNeuralNetwork>().IsInit = true;
                 creature.gameObject.SetActive(true);
             }
+            GenerationTimer = 0f;
         }
 
         private void ResetCreatures()
         {
-            foreach (Transform creature in _creatureList) Destroy(creature.gameObject);
-            _creatureList.Clear();
-            SpawnCreatures();
+            CreatureNeuralNetwork.BestNN = null;
+
+            for (int i = 0; i < _creatureList.Count; i++)
+            {
+                Transform creature = _creatureList[i];
+                creature.GetComponent<CreatureNeuralNetwork>().Reset(i);
+                creature.GetComponent<DemoCarController>().Reset();
+                creature.position = spawn.position;
+                creature.rotation = _spawnRotation;
+                creature.gameObject.SetActive(false);
+            }
         }
 
         public void AddDeadCreature(int id)
         {
             if (_deadIdList.Contains(id)) // Protection
             {
-                Debug.LogWarningFormat("Creature {0} hit the wall multiple times !", id);
+                // Debug.LogWarningFormat("Creature {0} hit the wall multiple times !", id);
                 return;
             }
 
@@ -249,7 +262,7 @@ namespace NEAT.Demo.SmartCarV2
             _deadCreatureNumber++;
             if (_deadCreatureNumber == config.populationSize)
             {
-                //Debug.Log("TOTAL DEATH = " + _deadCreatureNumber);
+                // Debug.Log("TOTAL DEATH = " + _deadCreatureNumber);
                 StartNewGeneration();
             }
         }

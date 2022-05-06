@@ -13,15 +13,20 @@ namespace UnityStandardAssets.Vehicles.Car
         private Quaternion m_OriginalRotation;
 
 
-        private void Start()
+        private void Awake()
         {
             m_OriginalRotation = transform.localRotation;
+        }
+
+        private void OnEnable()
+        {
+            transform.localRotation = m_OriginalRotation;
         }
 
 
         private void Update()
         {
-            transform.localRotation = m_OriginalRotation*Quaternion.Euler(0, carController.CurrentSteerAngle, 0);
+            transform.localRotation = m_OriginalRotation * Quaternion.Euler(0, carController.CurrentSteerAngle, 0);
         }
     }
 }
