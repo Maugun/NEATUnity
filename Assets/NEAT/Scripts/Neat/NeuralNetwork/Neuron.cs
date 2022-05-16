@@ -90,6 +90,13 @@ namespace NEAT
                 return Output;
             }
 
+            // Activation
+            if (NeuronTypeValue == NeuronType.OUTPUT && _inputs.Length == 0)
+            {
+                Output = sum;
+                return Output;
+            }
+
             // Bias
             if (Bias) sum += 1f;
 
