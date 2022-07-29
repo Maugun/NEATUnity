@@ -5,16 +5,16 @@ This project include a demo of self driving car using NEAT.
 
 ### Prerequisites
 
-* Install Unity3D (Only for Dev)
+- Install Unity3D (Only for Dev)
 
 ### Download
 
-* [Download Link](https://github.com/Maugun/NEATUnity/releases) (Recommended)
-* [Web Version](https://maugun.github.io/NEATUnity/Web/) (Not optimal)
+- [Download Link](https://github.com/Maugun/NEATUnity/releases) (Recommended)
+- [Web Version](https://maugun.github.io/NEATUnity/Web/v1.1/) (Not optimal)
 
 ## Built With
 
-* [Unity3D](https://unity3d.com/) - Game Development Platform
+- [Unity3D](https://unity3d.com/) - Game Development Platform
 
 ## How to Use
 
@@ -22,7 +22,7 @@ This project include a demo of self driving car using NEAT.
 
 ## Authors
 
-* **Richard ALLEMAN** - [Maugun](https://github.com/Maugun)
+- **Richard ALLEMAN** - [Maugun](https://github.com/Maugun)
 
 ## License
 
