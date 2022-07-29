@@ -173,20 +173,20 @@ namespace NEAT.Demo.Life2D
                             {
                                 // Add Connections from Inputs to First Hidden Layer
                                 for (int inputNodeId = inputStartId; inputNodeId < _inputNodeNumber; ++inputNodeId)
-                                    genome.AddConnectionGene(new ConnectionGene(inputNodeId, hiddenNodeId, Random.Range(-0.5f, 0.5f), true, _connectionInnovation.GetNewInnovationNumber()));
+                                    genome.AddConnectionGene(new ConnectionGene(inputNodeId, hiddenNodeId, Random.Range(_config.newWeightRange.x, _config.newWeightRange.y), true, _connectionInnovation.GetNewInnovationNumber()));
                             }
                             else
                             {
                                 // Add Connections from previous Hidden Layer to current Hidden Layer
                                 for (int previousHiddenNodeId = previousHiddenStatId; previousHiddenNodeId < previousHiddenStopId; ++previousHiddenNodeId)
-                                    genome.AddConnectionGene(new ConnectionGene(previousHiddenNodeId, hiddenNodeId, Random.Range(-0.5f, 0.5f), true, _connectionInnovation.GetNewInnovationNumber()));
+                                    genome.AddConnectionGene(new ConnectionGene(previousHiddenNodeId, hiddenNodeId, Random.Range(_config.newWeightRange.x, _config.newWeightRange.y), true, _connectionInnovation.GetNewInnovationNumber()));
 
                                 // If current Hidden Layer is the last Layer 
                                 if (hiddenLayer + 1 == _config.hiddenNodeStartNumberByLayer.Count)
                                 {
                                     // Add Connections from Last Hidden Layer to Outputs
                                     for (int outputNodeId = outputStartId; outputNodeId < genome.Nodes.Count; ++outputNodeId)
-                                        genome.AddConnectionGene(new ConnectionGene(hiddenNodeId, outputNodeId, Random.Range(-0.5f, 0.5f), true, _connectionInnovation.GetNewInnovationNumber()));
+                                        genome.AddConnectionGene(new ConnectionGene(hiddenNodeId, outputNodeId, Random.Range(_config.newWeightRange.x, _config.newWeightRange.y), true, _connectionInnovation.GetNewInnovationNumber()));
                                 }
                             }
                         }
@@ -206,7 +206,7 @@ namespace NEAT.Demo.Life2D
                     {
                         // Loop Output Node & add Connection between Input Node & Hidden Node
                         for (int outputNodeId = outputStartId; outputNodeId < outputStopId; ++outputNodeId)
-                            genome.AddConnectionGene(new ConnectionGene(inputNodeId, outputNodeId, Random.Range(-1f, 2f), true, _connectionInnovation.GetNewInnovationNumber()));
+                            genome.AddConnectionGene(new ConnectionGene(inputNodeId, outputNodeId, Random.Range(_config.newWeightRange.x, _config.newWeightRange.y), true, _connectionInnovation.GetNewInnovationNumber()));
                     }
                 }
             }

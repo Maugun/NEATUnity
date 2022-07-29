@@ -82,7 +82,7 @@ namespace NEAT
                 BestFitness = _genomes[0].Fitness;
 
                 // Keep Best Genomes for Next Evaluation
-                int maxToKeep = ((_config.populationSize * _config.percentageToKeep) / 100) - 1;
+                int maxToKeep = MaxToKeep();
                 for (int i = 0; i <= maxToKeep; i++)
                     _nextEvaluationGenomes.Add(_genomes[i]);
             }
@@ -209,7 +209,7 @@ namespace NEAT
                 // Get Child
 
                 Species species = null;
-                int maxToKeep = ((_config.populationSize * _config.percentageToKeep) / 100) - 1;
+                int maxToKeep = MaxToKeep();
                 if (_config.species) species = GetRandomSpecies(_r);
                 if (_config.crossover)
                 {
@@ -264,6 +264,7 @@ namespace NEAT
                 }
 
                 // Add Child to Next Evaluation Genomes
+                child.Fitness = 0f;
                 _nextEvaluationGenomes.Add(child);
             }
 
@@ -356,6 +357,15 @@ namespace NEAT
         public List<Genome> GetGenomes()
         {
             return _genomes;
+        }
+
+        /// <summary>
+        /// Get Max Population to Keep
+        /// </summary>
+        /// <returns></returns>
+        public int MaxToKeep()
+        {
+            return ((_config.populationSize * _config.percentageToKeep) / 100) - 1;
         }
 
         /// <summary>

@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Random = System.Random;
 
-namespace NEAT
+namespace NEAT.Demo.PreyVsPredator
 {
     public class EvaluatorRT
     {
@@ -27,13 +27,19 @@ namespace NEAT
             _nodeInnovation = nodeInnovation;
             _connectionInnovation = connectionInnovation;
             _currentPop = 0;
+            BestFitness = -1f;
+            BestGenome = null;
 
             _genomes = new List<Genome>();
+            if (startingGenome.Connections.Count == 0)
+            {
+                for (int i = 0; i < _config.startPopulation; ++i)
+                    AddGenomeToList(BreedFromItself(startingGenome));
+                return;
+            }
             for (int i = 0; i < _config.startPopulation; ++i)
                 AddGenomeToList(Genome.GenomeRandomWeights(startingGenome, _r));
 
-            BestFitness = -1f;
-            BestGenome = null;
         }
 
         public Genome AddNewGenome(Genome genomeToAdd = null)
@@ -77,24 +83,19 @@ namespace NEAT
             BestFitness = -1f;
             BestGenome = null;
 
-            // Get Genomes Fitness
-            //foreach (Genome genome in _genomes)
-            //    genome.Fitness = EvaluateGenome(genome);
-
             // Sort Genomes by Fitness (Desc order)
             _genomes = _genomes.OrderByDescending(o => o.Fitness).ToList();
             BestGenome = _genomes[0];
             BestFitness = _genomes[0].Fitness;
         }
 
-        public void RemoveOldGenomes(List<int> excludeList)
+        public void CleanGenomes()
         {
             OrderGenomeByFitness();
             int maxToKeep = MaxToKeep();
             for (int i = _genomes.Count - 1; i > maxToKeep; --i)
             {
-                if (!excludeList.Contains(_genomes[i].Id))
-                    _genomes.RemoveAt(i);
+                _genomes.RemoveAt(i);
             }
             _currentPop = _genomes.Count;
         }

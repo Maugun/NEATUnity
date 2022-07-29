@@ -15,6 +15,7 @@ namespace NEAT
         [Range(0, 100)] public int percentageToKeep = 30;                                   // Percentage to Keep
 
         [Header("Crossover")]
+        public bool crossover = true;                                                       // Is Crossover on ?
         [Range(0f, 1f)] public float disabledConnectionInheritChance = 0.75f;               // Disabled Connection Inherit Chance
 
         [Header("Neural Network")]

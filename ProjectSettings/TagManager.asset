@@ -8,6 +8,8 @@ TagManager:
   - Creature
   - Food
   - Wall
+  - Predator
+  - Prey
   layers:
   - Default
   - TransparentFX
@@ -20,8 +22,8 @@ TagManager:
   - Player
   - Wall
   - Seeable
-  - 
-  - 
+  - Predator
+  - Prey
   - 
   - 
   - 

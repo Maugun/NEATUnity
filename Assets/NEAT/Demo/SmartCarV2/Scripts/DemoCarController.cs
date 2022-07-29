@@ -59,7 +59,7 @@ namespace NEAT.Demo.SmartCarV2
 
             if (!IsInit) return;
 
-            _timer += Time.deltaTime;
+            _timer += Time.fixedDeltaTime;
             if (_timer >= deathTimer)
             {
                 Die();
