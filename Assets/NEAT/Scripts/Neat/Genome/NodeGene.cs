@@ -2,6 +2,7 @@
 
 namespace NEAT
 {
+    [System.Serializable]
     public class NodeGene
     {
         public enum TYPE
@@ -13,6 +14,8 @@ namespace NEAT
 
         public TYPE Type { get; set; }
         public int Id { get; set; }
+
+        public NodeGene() { }
 
         public NodeGene(TYPE type, int id)
         {

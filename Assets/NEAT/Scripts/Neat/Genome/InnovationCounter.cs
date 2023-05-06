@@ -3,11 +3,13 @@ namespace NEAT
 {
     public class InnovationCounter
     {
-        private int _currentInnovation = 0;
+        public int CurrentInnovation { get; set; }
+
+        public InnovationCounter(int currentInnovation = 0) { CurrentInnovation = currentInnovation; }
 
         public int GetNewInnovationNumber()
         {
-            return _currentInnovation++;
+            return CurrentInnovation++;
         }
     }
 }

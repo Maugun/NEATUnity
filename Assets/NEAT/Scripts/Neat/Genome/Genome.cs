@@ -2,20 +2,30 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Newtonsoft.Json;
 using Random = System.Random;
 
 namespace NEAT
 {
+    [System.Serializable]
     public class Genome
     {
-        public static int genomeIdCounter = 0;                                                     // Genome Id Counter
+        public static int genomeIdCounter = 0;                                                      // Genome Id Counter
 
         public Dictionary<int, NodeGene> Nodes { get; set; }                                        // Nodes Dictionary
         public Dictionary<int, ConnectionGene> Connections { get; set; }                            // Connections Dictionary
-        public float Fitness { get; set; }                                                          // Genome Fitness
-        public int Id { get; set; }                                                                 // Genome Id
-        public Vector2 NewWeightRange { get; set; }                                                 // New Weight Range Values
+        [JsonIgnore] public float Fitness { get; set; }                                             // Genome Fitness
+        [JsonIgnore] public int Id { get; set; }                                                    // Genome Id
+        [JsonIgnore] public Vector2 NewWeightRange { get; set; }                                    // New Weight Range Values
         public float PerturbingProbability { get; set; }                                            // Perturbing Probability => rest of this number is the probability of a new weight
+
+        /* JSON */
+        public float _newWeightRangeX;                                                               // Newtonsoft.Json can't serialize Vector2
+        public float _newWeightRangeY;                                                               // Newtonsoft.Json can't serialize Vector2
+        public int _nodeInnovation;
+        public int _connectionInnovation;
+
+        public Genome() { }
 
         public Genome(Vector2 newWeightRange = default(Vector2), float perturbingProbability = 0.9f)
         {
@@ -623,6 +633,28 @@ namespace NEAT
         public void AddConnectionGene(ConnectionGene connection)
         {
             Connections[connection.InnovationId] = connection;
+        }
+
+        /// <summary>
+        /// Prepare To Json
+        /// </summary>
+        public void PrepareToJson(InnovationCounter nodeInnovation, InnovationCounter connectInnovation)
+        {
+            _newWeightRangeX = NewWeightRange.x;
+            _newWeightRangeY = NewWeightRange.y;
+            _nodeInnovation = nodeInnovation.CurrentInnovation;
+            _connectionInnovation = connectInnovation.CurrentInnovation;
+        }
+
+        /// <summary>
+        /// Init From Json
+        /// </summary>
+        public void InitFromJson()
+        {
+            NewWeightRange = new Vector2(_newWeightRangeX, _newWeightRangeY);
+            Fitness = 0f;
+            Id = Genome.genomeIdCounter;
+            Genome.genomeIdCounter++;
         }
         #endregion =======================================================================================================#
     }

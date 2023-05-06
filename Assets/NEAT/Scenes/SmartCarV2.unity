@@ -3680,6 +3680,8 @@ MonoBehaviour:
   generateLevel: 0
   isMultiLevel: 0
   start: 0
+  saveBestGenome: 0
+  autoSaveBestGenome: 1
   levelGenerator: {fileID: 1816033557}
   cameraController: {fileID: 251287151}
   ui: {fileID: 1454411376}
@@ -12872,7 +12874,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   width: 16
   height: 16
-  isCircuit: 1
+  isCircuit: 0
   addCheckpoints: 1
   forwardList:
   - {fileID: 8943371604606412567, guid: 390ccf5132f5668419d7083413ab58d6, type: 3}
@@ -12894,7 +12896,7 @@ MonoBehaviour:
     type: 3}
   levelParent: {fileID: 1192766265}
   tileSize: 10
-  spawnOnlyFirstInList: 0
+  spawnOnlyFirstInList: 1
   startMaterial: {fileID: 2100000, guid: 8c19a618a0bd9844583b91dca0875a34, type: 2}
   endMaterial: {fileID: 2100000, guid: 82096aab38f01cb40a1cbf8629a810ba, type: 2}
 --- !u!4 &1816033558
@@ -15830,7 +15832,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!1 &2138431152
 GameObject:
   m_ObjectHideFlags: 0

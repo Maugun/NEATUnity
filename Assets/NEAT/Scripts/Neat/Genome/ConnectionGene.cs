@@ -2,6 +2,7 @@
 
 namespace NEAT
 {
+    [System.Serializable]
     public class ConnectionGene
     {
         public int InNode { get; set; }
@@ -9,6 +10,8 @@ namespace NEAT
         public float Weight { get; set; }
         public bool IsEnable { get; set; }
         public int InnovationId { get; set; }
+
+        public ConnectionGene() { }
 
         public ConnectionGene(int inNode, int outNode, float weight, bool enable, int innovationId)
         {

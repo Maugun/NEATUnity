@@ -257,7 +257,7 @@ namespace NEAT.Demo.SmartCarV2
         #region Level
         private void InitLevelCanvas()
         {
-            levelGenerator.spawnOnlyFirstInList = false;
+            levelGenerator.spawnOnlyFirstInList = true;
             levelGenerator.isCircuit = false;
             _levelSizeDropdown = levelCanvas.transform.Find("SizeDropdown").GetComponent<Dropdown>();
             _levelOptionDropdown = levelCanvas.transform.Find("OptionDropdown").GetComponent<Dropdown>();

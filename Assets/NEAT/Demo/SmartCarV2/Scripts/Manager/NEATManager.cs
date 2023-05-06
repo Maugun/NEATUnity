@@ -10,6 +10,8 @@ namespace NEAT.Demo.SmartCarV2
         public bool generateLevel = false;                                                      // Generate Level
         public bool isMultiLevel = false;                                                       // Is Multi Level ?
         public bool start = false;                                                              // Start ?
+        public bool saveBestGenome = false;                                                     // Save Best Genome to Json ?
+        public bool autoSaveBestGenome = true;                                                 // Auto Save Best Genome to Json ?
         public LevelGenerator levelGenerator;                                                   // Level Generator
         public CameraController cameraController;                                               // Camera Controller
         public GenerateLevelUI ui;                                                              // UI
@@ -22,19 +24,22 @@ namespace NEAT.Demo.SmartCarV2
         private Genome _startingGenome = null;                                                  // Starting Genome
         private int _deadCreatureNumber;                                                        // Dead Creature Number
         private List<int> _deadIdList;                                                          // List of Dead Creature's ids
-        private int _generationNumber;                                                          // Generation Number
         private Quaternion _spawnRotation;                                                      // SpawnRotation
+        private bool _isNewLevel;
 
         private InnovationCounter _nodeInnovation = new InnovationCounter();                    // Node Innovation Counter
         private InnovationCounter _connectionInnovation = new InnovationCounter();              // Connection Innovation Counter
+
+        private SaveGenome _saveGenome;
+        private float _previousBestFitness = 0f;
 
         private void Start()
         {
             _creatureList = new List<Transform>();
             _deadCreatureNumber = 0;
             _deadIdList = new List<int>();
-            _generationNumber = 1;
             GenerationTimer = 0f;
+            _saveGenome = new SaveGenome();
         }
 
         private void Update()
@@ -53,9 +58,9 @@ namespace NEAT.Demo.SmartCarV2
                     cameraController.CenterCameraOnMap(levelGenerator.width - 1, levelGenerator.height - 1, levelGenerator.tileSize);
                 }
 
-                CreateStartingGenomeAndEvaluator();
+                SetStartingGenomeAndEvaluator();
                 SpawnCreatures();
-                CreateNeuralNetworks();
+                AddNNToCreatures();
                 StartSimulation();
                 start = false;
             }
@@ -75,7 +80,14 @@ namespace NEAT.Demo.SmartCarV2
             }
         }
 
-        private void CreateStartingGenomeAndEvaluator()
+        private void SetStartingGenomeAndEvaluator()
+        {
+            _startingGenome = _startingGenome == null ? CreateStartingGenome() : _startingGenome;
+            Debug.Log("Starting Genome:\n" + _startingGenome.ToString());
+            SetEvaluator(_startingGenome);
+        }
+
+        private Genome CreateStartingGenome()
         {
             // Create New Genome
             Genome genome = new Genome(config.newWeightRange, config.perturbingProbability);
@@ -164,14 +176,15 @@ namespace NEAT.Demo.SmartCarV2
                 }
             }
 
-            _startingGenome = genome;
-            Debug.Log("Starting Genome:\n" + genome.ToString());
+            return genome;
+        }
 
-            // Create Evaluator
+        private void SetEvaluator(Genome genome)
+        {
             _evaluator = new CreatureEvaluator(config, genome, _nodeInnovation, _connectionInnovation);
         }
 
-        private void CreateNeuralNetworks()
+        private void AddNNToCreatures()
         {
             List<Genome> genomeList = _evaluator.GetGenomes();
             for (int i = 0; i < genomeList.Count; i++)
@@ -180,17 +193,34 @@ namespace NEAT.Demo.SmartCarV2
 
         private void StartNewGeneration()
         {
-            // Reset Dead Creature Number
-            _deadCreatureNumber = 0;
-            _deadIdList.Clear();
+            ResetDeadCreatures();
+            GetGenomeFitnessFromCreatureNN();
+            EvaluateCurrentGeneration();
+            SaveToJson();
+            LoadNextLevel();
+            UpdateUI();
+            ResetCreatures();
+            AddNNToCreatures();
+            _previousBestFitness = _evaluator.BestFitness;
+            StartSimulation();
+        }
 
-            // Get Genome Fitness from Creature NN
-            GetGenomeFitness();
-
-            // Evaluate Generation
+        private void EvaluateCurrentGeneration()
+        {
             _evaluator.Evaluate();
+        }
 
-            // Logs
+        private void GetGenomeFitnessFromCreatureNN()
+        {
+            foreach (Transform creature in _creatureList)
+            {
+                NeuralNetwork creatureNN = creature.GetComponent<CreatureNeuralNetwork>().NeuralNetwork;
+                _evaluator.GetGenomes().Find(o => o.Id == creatureNN.Genome.Id).Fitness = creatureNN.Fitness;
+            }
+        }
+
+        private void UpdateUI()
+        {
             NeuralNetwork bestNN = new NeuralNetwork(_evaluator.BestGenome, config.activationType, config.bias, config.timeOut);
             Debug.Log(_evaluator.GetGenerationLogs() + "\nBest Neural Network:\n" + bestNN.ToString());
             ui.UpdateGenerationLog(string.Format(
@@ -200,33 +230,7 @@ namespace NEAT.Demo.SmartCarV2
                 CreatureNeuralNetwork.BestNN.CheckpointPassed,
                 CreatureNeuralNetwork.BestNN.Time
             ));
-
-            if (isMultiLevel && CreatureNeuralNetwork.BestNN.CheckpointPassed >= Checkpoint.totalCp)
-                ui.GenerateNextLevel();
-
-            // Reset Creatures
-            ResetCreatures();
-
-            // Add NN to Creatures
-            CreateNeuralNetworks();
-
-            // Update Generation Number
-            _generationNumber = _evaluator.GenerationNumber;
-
-            // Update Brain Graph
             ui.UpdateBrainGraph(bestNN);
-
-            // Start Simulation
-            StartSimulation();
-        }
-
-        private void GetGenomeFitness()
-        {
-            foreach (Transform creature in _creatureList)
-            {
-                NeuralNetwork creatureNN = creature.GetComponent<CreatureNeuralNetwork>().NeuralNetwork;
-                _evaluator.GetGenomes().Find(o => o.Id == creatureNN.Genome.Id).Fitness = creatureNN.Fitness;
-            }
         }
 
         private void StartSimulation()
@@ -254,6 +258,12 @@ namespace NEAT.Demo.SmartCarV2
             }
         }
 
+        private void ResetDeadCreatures()
+        {
+            _deadCreatureNumber = 0;
+            _deadIdList.Clear();
+        }
+
         public void AddDeadCreature(int id)
         {
             if (_deadIdList.Contains(id)) // Protection
@@ -269,6 +279,31 @@ namespace NEAT.Demo.SmartCarV2
                 // Debug.Log("TOTAL DEATH = " + _deadCreatureNumber);
                 StartNewGeneration();
             }
+        }
+
+        private void LoadNextLevel()
+        {
+            _isNewLevel = false;
+            if (!isMultiLevel || CreatureNeuralNetwork.BestNN.CheckpointPassed < Checkpoint.totalCp) return;
+
+            ui.GenerateNextLevel();
+            _isNewLevel = true;
+        }
+
+        private void SaveToJson()
+        {
+            if (!saveBestGenome && !autoSaveBestGenome) return;
+            if (!saveBestGenome && autoSaveBestGenome && _evaluator.BestFitness <= _previousBestFitness && !_isNewLevel) return;
+
+            _saveGenome.ToJson(_evaluator.BestGenome, _nodeInnovation, _connectionInnovation, _evaluator.GenerationNumber);
+        }
+
+        public void LoadFromJson()
+        {
+            string[] paths = _saveGenome.GetAllPathFromDirectory();
+            _startingGenome = _saveGenome.FromJson(paths[0]);
+            _nodeInnovation.CurrentInnovation = _startingGenome._nodeInnovation;
+            _connectionInnovation.CurrentInnovation = _startingGenome._connectionInnovation;
         }
 
         public class CreatureEvaluator : Evaluator
