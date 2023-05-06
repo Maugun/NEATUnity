@@ -13,9 +13,9 @@ namespace NEAT.Demo.Tools
         private Random _r;
         private bool _leftEnd;
 
-        public HamiltonianPath()
+        public HamiltonianPath(Random r)
         {
-            _r = new Random();
+            _r = r;
         }
 
         public List<int[]> Generate(int xMax, int yMax, bool isCircuit)

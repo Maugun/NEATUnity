@@ -62,9 +62,9 @@ namespace NEAT.Demo.SmartCarV2
 
         private void Start()
         {
-            // Init HP & Random
-            _hp = new HamiltonianPath();
+            // Init Random & HP
             _r = new Random();
+            _hp = new HamiltonianPath(_r);
             _xMax = width - 1;
             _yMax = height - 1;
         }

@@ -8,6 +8,7 @@ namespace NEAT.Demo.SmartCarV2
         [Header("NEAT")]
         public Transform spawn;                                                                 // Spawn
         public bool generateLevel = false;                                                      // Generate Level
+        public bool isMultiLevel = false;                                                       // Is Multi Level ?
         public bool start = false;                                                              // Start ?
         public LevelGenerator levelGenerator;                                                   // Level Generator
         public CameraController cameraController;                                               // Camera Controller
@@ -199,6 +200,9 @@ namespace NEAT.Demo.SmartCarV2
                 CreatureNeuralNetwork.BestNN.CheckpointPassed,
                 CreatureNeuralNetwork.BestNN.Time
             ));
+
+            if (isMultiLevel && CreatureNeuralNetwork.BestNN.CheckpointPassed >= Checkpoint.totalCp)
+                ui.GenerateNextLevel();
 
             // Reset Creatures
             ResetCreatures();

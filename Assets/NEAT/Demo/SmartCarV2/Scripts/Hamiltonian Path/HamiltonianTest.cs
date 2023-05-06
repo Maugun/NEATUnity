@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Random = System.Random;
 
 namespace NEAT.Demo.Tools
 {
@@ -6,7 +7,7 @@ namespace NEAT.Demo.Tools
     {
         void Start()
         {
-            HamiltonianPath hp = new HamiltonianPath();
+            HamiltonianPath hp = new HamiltonianPath(new Random());
             hp.Generate(9, 9, true);
             Debug.Log(hp.PathToString());
         }

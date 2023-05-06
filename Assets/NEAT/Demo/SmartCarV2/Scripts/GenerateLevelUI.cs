@@ -6,6 +6,20 @@ using UnityEngine.UI;
 
 namespace NEAT.Demo.SmartCarV2
 {
+    public enum LevelSize
+    {
+        Small = 0,
+        Medium = 1,
+        Large = 2
+    }
+
+    public enum LevelOption
+    {
+        Multi = 0,
+        Circuit = 1,
+        None = 2
+    }
+
     public class GenerateLevelUI : MonoBehaviour
     {
         public CameraController cameraController;
@@ -15,8 +29,10 @@ namespace NEAT.Demo.SmartCarV2
         public Canvas configurationCanvas;
         public Canvas levelCanvas;
         public Canvas carCanvas;
-        public Canvas InGameCanvas;
+        public Canvas inGameCanvas;
         public List<GameObject> carList;
+        public Vector2Int maxLevelSize = new Vector2Int(14, 14);
+        public Vector2Int minLevelSize = new Vector2Int(6, 6);
 
         private NEATConfig _config;
         private InputField _populationNbInput;
@@ -27,21 +43,36 @@ namespace NEAT.Demo.SmartCarV2
         private InputField _enableDisableInput;
         private InputField _weightMutationsInput;
         private InputField _perturbingProbabilityInput;
+
         private bool _timeAttack;
+
         private Text _genertionLogUI;
         public Text _timerUI;
+        public Text _levelNumberUI;
+        public Text _checkpointNumberUI;
+        public Text _isComplexLevelUI;
+        public Text _isTimeAttackUI;
+
         private BrainGraph _brainGraph;
         private RectTransform _brainRectTransform;
+
         private Image _speedOne;
         private Image _speedFive;
         private Image _speedTen;
 
+        private Vector2Int _currentSize;
+        private int _currentLevel = 1;
+
+        private Dropdown _levelSizeDropdown;
+        private Dropdown _levelOptionDropdown;
+
         private void Awake()
         {
+            _currentSize = new Vector2Int();
             configurationCanvas.gameObject.SetActive(true);
             levelCanvas.gameObject.SetActive(false);
             carCanvas.gameObject.SetActive(false);
-            InGameCanvas.gameObject.SetActive(false);
+            inGameCanvas.gameObject.SetActive(false);
             InitConfigurationCanvas();
             InitLevelCanvas();
             InitCarCanvas();
@@ -52,7 +83,7 @@ namespace NEAT.Demo.SmartCarV2
         public void HideConfigurationCanvas()
         {
             configurationCanvas.gameObject.SetActive(false);
-            levelCanvas.gameObject.SetActive(true);
+            carCanvas.gameObject.SetActive(true);
         }
 
         private void InitConfigurationCanvas()
@@ -196,49 +227,6 @@ namespace NEAT.Demo.SmartCarV2
         public void HasGenomeMutations() { _config.genomeMutations = _config.genomeMutations ? false : true; }
         #endregion
 
-        #region Level
-        private void InitLevelCanvas()
-        {
-            levelGenerator.spawnOnlyFirstInList = false;
-            levelGenerator.isCircuit = true;
-        }
-
-        public void HideLevelCanvas()
-        {
-            levelCanvas.gameObject.SetActive(false);
-            carCanvas.gameObject.SetActive(true);
-            neatManager.levelGenerator = levelGenerator;
-            neatManager.spawn = levelGenerator.Spawn;
-            neatManager.SetSpawnRotation(levelGenerator.SpawnRotation);
-        }
-
-        public void GenerateSmallLevel()
-        {
-            GenerateLevel(6, 6);
-        }
-
-        public void GenerateMediumLevel()
-        {
-            GenerateLevel(10, 10);
-        }
-
-        public void GenerateLargeLevel()
-        {
-            GenerateLevel(14, 14);
-        }
-
-        private void GenerateLevel(int w, int h)
-        {
-            levelGenerator.GenerateLevel(w, h, levelGenerator.isCircuit);
-            cameraController.CenterCameraOnMap(levelGenerator.width - 1, levelGenerator.height - 1, levelGenerator.tileSize);
-            levelCanvas.transform.Find("Next").gameObject.SetActive(true);
-        }
-
-        public void IsComplex() { levelGenerator.spawnOnlyFirstInList = levelGenerator.spawnOnlyFirstInList ? false : true; }
-
-        public void IsCircuit() { levelGenerator.isCircuit = levelGenerator.isCircuit ? false : true; }
-        #endregion
-
         #region Car
         private void InitCarCanvas()
         {
@@ -260,25 +248,105 @@ namespace NEAT.Demo.SmartCarV2
             neatManager.config.creaturePrefab = carList[index];
             _config.creaturePrefab.GetComponent<DemoCarController>().timeAttack = _timeAttack;
             carCanvas.gameObject.SetActive(false);
-            InGameCanvas.gameObject.SetActive(true);
-            neatManager.start = true;
+            levelCanvas.gameObject.SetActive(true);
         }
 
         public void IsTimeAttack() { _timeAttack = _timeAttack ? false : true; }
         #endregion
 
+        #region Level
+        private void InitLevelCanvas()
+        {
+            levelGenerator.spawnOnlyFirstInList = false;
+            levelGenerator.isCircuit = false;
+            _levelSizeDropdown = levelCanvas.transform.Find("SizeDropdown").GetComponent<Dropdown>();
+            _levelOptionDropdown = levelCanvas.transform.Find("OptionDropdown").GetComponent<Dropdown>();
+        }
+
+        public void HideLevelCanvas()
+        {
+            levelCanvas.gameObject.SetActive(false);
+            StartSimulation();
+        }
+
+        public void GenerateFirstLevel()
+        {
+            levelGenerator.isCircuit = _levelOptionDropdown.value == (int)LevelOption.Circuit;
+
+            if (_levelSizeDropdown.value == (int)LevelSize.Small) { GenerateSmallLevel(); return; }
+            if (_levelSizeDropdown.value == (int)LevelSize.Medium) { GenerateMediumLevel(); return; }
+            GenerateLargeLevel();
+        }
+
+
+        public void GenerateSmallLevel()
+        {
+            GenerateLevel(6, 6);
+        }
+
+        public void GenerateMediumLevel()
+        {
+            GenerateLevel(10, 10);
+        }
+
+        public void GenerateLargeLevel()
+        {
+            GenerateLevel(14, 14);
+        }
+
+        public void GenerateNextLevel()
+        {
+            if (_currentSize.x == maxLevelSize.x) levelGenerator.spawnOnlyFirstInList = false;
+            _currentSize.x = _currentSize.x < maxLevelSize.x ? _currentSize.x + 1 : minLevelSize.x;
+            _currentSize.y = _currentSize.y < maxLevelSize.y ? _currentSize.y + 1 : minLevelSize.y;
+            GenerateLevel(_currentSize.x, _currentSize.y);
+            _currentLevel++;
+            UpdateLevelUI();
+        }
+
+        private void GenerateLevel(int w, int h)
+        {
+            levelGenerator.GenerateLevel(w, h, levelGenerator.isCircuit);
+            cameraController.CenterCameraOnMap(levelGenerator.width - 1, levelGenerator.height - 1, levelGenerator.tileSize);
+            levelCanvas.transform.Find("Next").gameObject.SetActive(true);
+            neatManager.levelGenerator = levelGenerator;
+            neatManager.spawn = levelGenerator.Spawn;
+            neatManager.SetSpawnRotation(levelGenerator.SpawnRotation);
+            _currentSize = new Vector2Int(w, h);
+        }
+
+        public void IsComplex() { levelGenerator.spawnOnlyFirstInList = levelGenerator.spawnOnlyFirstInList ? false : true; }
+
+        #endregion
+
         #region InGame
+        private void StartSimulation()
+        {
+            inGameCanvas.gameObject.SetActive(true);
+            neatManager.isMultiLevel = _levelOptionDropdown.value == (int)LevelOption.Multi;
+            UpdateLevelUI();
+            neatManager.start = true;
+        }
+
         private void InitGameCanvas()
         {
-            _genertionLogUI = InGameCanvas.transform.Find("LogText").GetComponent<Text>();
-            _speedOne = InGameCanvas.transform.Find("SpeedOne").GetComponent<Image>();
-            _speedFive = InGameCanvas.transform.Find("SpeedFive").GetComponent<Image>();
-            _speedTen = InGameCanvas.transform.Find("SpeedTen").GetComponent<Image>();
-            _timerUI = InGameCanvas.transform.Find("TimerTxt").GetComponent<Text>();
-            _brainGraph = InGameCanvas.transform.Find("Brain").GetComponent<BrainGraph>();
-            _brainRectTransform = _brainGraph.transform.GetComponent<RectTransform>();
-            SpeedOne();
+            _genertionLogUI = inGameCanvas.transform.Find("LogText").GetComponent<Text>();
 
+            _speedOne = inGameCanvas.transform.Find("SpeedOne").GetComponent<Image>();
+            _speedFive = inGameCanvas.transform.Find("SpeedFive").GetComponent<Image>();
+            _speedTen = inGameCanvas.transform.Find("SpeedTen").GetComponent<Image>();
+
+            _timerUI = inGameCanvas.transform.Find("TimerTxt").GetComponent<Text>();
+
+            _brainGraph = inGameCanvas.transform.Find("Brain").GetComponent<BrainGraph>();
+            _brainRectTransform = _brainGraph.transform.GetComponent<RectTransform>();
+
+            _levelNumberUI = inGameCanvas.transform.Find("LevelNumber").GetComponent<Text>();
+            _checkpointNumberUI = inGameCanvas.transform.Find("CheckpointNumber").GetComponent<Text>();
+            _isComplexLevelUI = inGameCanvas.transform.Find("IsComplexLevel").GetComponent<Text>();
+            _isTimeAttackUI = inGameCanvas.transform.Find("IsTimeAttack").GetComponent<Text>();
+
+            SpeedOne();
         }
 
         public void SpeedOne()
@@ -327,6 +395,46 @@ namespace NEAT.Demo.SmartCarV2
             _brainGraph.SetNeuralNetwork(bestNN);
             _brainGraph.CreateGraph();
             _brainRectTransform.rotation = Quaternion.AngleAxis(-90f, Vector3.forward);
+        }
+
+        private void UpdateLevelNumberUI()
+        {
+            _levelNumberUI.text = string.Format(
+                "Level n°{0}",
+                _currentLevel
+            );
+        }
+
+        private void UpdateCheckpointNumberUI()
+        {
+            _checkpointNumberUI.text = string.Format(
+                "Number of Checkpoints: {0}",
+                Checkpoint.totalCp
+            );
+        }
+
+        private void UpdateIsComplexLevelUI()
+        {
+            _isComplexLevelUI.text = string.Format(
+                "Is Complex Level: {0}",
+                (!neatManager.levelGenerator.spawnOnlyFirstInList).ToString()
+            );
+        }
+
+        private void UpdateIsTimeAttackUI()
+        {
+            _isTimeAttackUI.text = string.Format(
+                "Is Time Attack: {0}",
+                _timeAttack.ToString()
+            );
+        }
+
+        private void UpdateLevelUI()
+        {
+            UpdateLevelNumberUI();
+            UpdateCheckpointNumberUI();
+            UpdateIsComplexLevelUI();
+            UpdateIsTimeAttackUI();
         }
         #endregion
     }
