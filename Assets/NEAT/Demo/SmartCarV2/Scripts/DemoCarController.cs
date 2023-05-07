@@ -5,6 +5,12 @@ namespace NEAT.Demo.SmartCarV2
 {
     public class DemoCarController : MonoBehaviour
     {
+        public enum SimulationType
+        {
+            NEAT,
+            Replay
+        }
+
         public bool IsInit { get; set; }                                                        // Is Initialize ?
         public CreatureNeuralNetwork CreatureNN { get; set; }                                   // Creature Neural Network
 
@@ -23,15 +29,16 @@ namespace NEAT.Demo.SmartCarV2
         private SimpleCar _simpleCarController;                                                 // Simple Car Controller
         private CarController _unityCarController;                                              // Unity Car Controller
         private NEATManager _NEATManager;                                                       // NEATManager
+        private ReplayManager _replayManager;
         private LineRenderer _lr;                                                               // Line Renderer for RayCast Visualization
         private float _h;                                                                       // H
         private float _v;                                                                       // V
         private float[] _previousFrameInputs;                                                   // Previous Frame Inputs
         private float _timer;                                                                   // Timer
+        private SimulationType _type;
 
         void Start()
         {
-            _NEATManager = GameObject.Find("NEATManager").GetComponent<NEATManager>();
             _simpleCarController = GetComponent<SimpleCar>();
             _unityCarController = GetComponent<CarController>();
             CreatureNN = GetComponent<CreatureNeuralNetwork>();
@@ -47,6 +54,13 @@ namespace NEAT.Demo.SmartCarV2
             _previousFrameInputs = null;
             _timer = 0f;
             IsInit = false;
+        }
+
+        public void Init(SimulationType type)
+        {
+            _type = type;
+            _NEATManager = type == SimulationType.NEAT ? GameObject.Find("NEATManager").GetComponent<NEATManager>() : null;
+            _replayManager = type == SimulationType.Replay ? GameObject.Find("ReplayManager").GetComponent<ReplayManager>() : null;
         }
 
         void FixedUpdate()
@@ -146,8 +160,12 @@ namespace NEAT.Demo.SmartCarV2
             CreatureNN.IsInit = false;
             IsInit = false;
             //Debug.Log(_creatureNN.Id + " DEAD");
-            gameObject.SetActive(false);                                                        // Make sure the car is inactive
-            _NEATManager.AddDeadCreature(CreatureNN.Id);                                       // Tell the Evolution Manager that the car is dead
+            gameObject.SetActive(false);                                                       // Make sure the car is inactive
+
+            if (_type == SimulationType.NEAT)
+                _NEATManager.AddDeadCreature(CreatureNN.Id);                                       // Tell the Evolution Manager that the car is dead
+            else
+                _replayManager.AddDeadCreature(CreatureNN.Id);
         }
 
         private void OnCollisionEnter(Collision collision)

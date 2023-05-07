@@ -42,6 +42,7 @@ namespace NEAT.Demo.SmartCarV2
         private string _spawnName = "Spawn";
         private int _xMax;
         private int _yMax;
+        private Level _currentLevel;
 
         private enum Direction
         {
@@ -80,6 +81,19 @@ namespace NEAT.Demo.SmartCarV2
             GenerateLevel();
         }
 
+        public void LoadLevel(Level level)
+        {
+            _currentLevel = level;
+            isCircuit = _currentLevel.isCircuit;
+            spawnOnlyFirstInList = _currentLevel.spawnOnlyFirstInList;
+            _xMax = _currentLevel.xMax;
+            _yMax = _currentLevel.yMax;
+            width = _xMax + 1;
+            height = _yMax + 1;
+            InitLevel();
+            SpawnLevel(_currentLevel.path, true);
+        }
+
         public void GenerateLevel()
         {
             // Max x, y Value protection
@@ -94,6 +108,17 @@ namespace NEAT.Demo.SmartCarV2
                 return;
             }
 
+            _currentLevel = new Level(_xMax, _yMax, isCircuit, spawnOnlyFirstInList);
+            InitLevel();
+
+            List<int[]> path = GenerateLevelPath();
+            SpawnLevel(path);
+
+            //Debug.Log(_hp.PathToString());
+        }
+
+        private void InitLevel()
+        {
             // Clean Level Parent
             foreach (Transform child in levelParent) GameObject.Destroy(child.gameObject);
 
@@ -102,19 +127,24 @@ namespace NEAT.Demo.SmartCarV2
 
             // Add Checkpoints parent
             if (addCheckpoints) SpawnCheckpointParent();
+        }
 
-            // Generate level path
+        private List<int[]> GenerateLevelPath()
+        {
             List<int[]> path = _hp.Generate(_xMax, _yMax, isCircuit);
+            _currentLevel.path = path;
 
-            // Generate Level
-            StartTile(path);
-            for (int i = 1; i < path.Count - 1; ++i) MiddleTile(path, i);
-            EndTile(path);
+            return path;
+        }
 
-            // Spawn
+        private void SpawnLevel(List<int[]> path, bool isLoaded = false)
+        {
+            StartTile(path, isLoaded);
+            for (int i = 1; i < path.Count - 1; ++i) MiddleTile(path, i, isLoaded);
+            EndTile(path, isLoaded);
+
+            // Spawn Object
             SpawnSpawn(path);
-
-            //Debug.Log(_hp.PathToString());
         }
 
         private void SpawnCheckpointParent()
@@ -125,39 +155,39 @@ namespace NEAT.Demo.SmartCarV2
             Destroy(obj);
         }
 
-        private void StartTile(List<int[]> path)
+        private void StartTile(List<int[]> path, bool isLoaded = false)
         {
             Direction dirNext = GetDirection(path[0], path[1]);
             Direction dirPrev = GetDirection(path[0], path[path.Count - 1]);
             Type type = Type.START;
 
             if (isCircuit) type = GetType(dirPrev, dirNext);
-            SpawnTile(path, 0, dirPrev, dirNext, type);
+            SpawnTile(path, 0, dirPrev, dirNext, type, isLoaded);
         }
 
-        private void MiddleTile(List<int[]> path, int currentIndex)
+        private void MiddleTile(List<int[]> path, int currentIndex, bool isLoaded = false)
         {
             Direction dirNext = GetDirection(path[currentIndex], path[currentIndex + 1]);
             Direction dirPrev = GetDirection(path[currentIndex], path[currentIndex - 1]);
             Type type = GetType(dirPrev, dirNext);
-            SpawnTile(path, currentIndex, dirPrev, dirNext, type);
+            SpawnTile(path, currentIndex, dirPrev, dirNext, type, isLoaded);
         }
 
-        private void EndTile(List<int[]> path)
+        private void EndTile(List<int[]> path, bool isLoaded = false)
         {
             Direction dirPrev = GetDirection(path[path.Count - 1], path[path.Count - 2]);
             Direction dirNext = GetDirection(path[path.Count - 1], path[0]);
             Type type = Type.END;
 
             if (isCircuit) type = GetType(dirPrev, dirNext);
-            SpawnTile(path, path.Count - 1, dirPrev, dirNext, type);
+            SpawnTile(path, path.Count - 1, dirPrev, dirNext, type, isLoaded);
 
         }
 
-        private void SpawnTile(List<int[]> path, int index, Direction dirPrev, Direction dirNext, Type type)
+        private void SpawnTile(List<int[]> path, int index, Direction dirPrev, Direction dirNext, Type type, bool isLoaded = false)
         {
             // Spawn Tile
-            GameObject obj = GetTileObj(type, index);
+            GameObject obj = GetTileObj(type, index, isLoaded);
             float angle = GetAngle(dirPrev, dirNext, type);
             Vector3 spawnPosition = new Vector3(path[index][0] * tileSize, 0f, path[index][1] * tileSize);
             Quaternion spawnRotation = Quaternion.AngleAxis(angle, Vector3.up);
@@ -232,19 +262,25 @@ namespace NEAT.Demo.SmartCarV2
             SpawnRotation = Quaternion.AngleAxis(angle, Vector3.up);
         }
 
-        private GameObject GetTileObj(Type type, int index)
+        private GameObject GetTileObj(Type type, int index, bool isLoaded = false)
         {
-            if (type == Type.START) return GetTileInList(startList, index);
-            if (type == Type.FORWARD) return GetTileInList(forwardList, index);
-            if (type == Type.CORNER) return GetTileInList(cornerList, index);
-            if (type == Type.END) return GetTileInList(endList, index);
-            return null;
+            List<GameObject> list = null;
+
+            if (type == Type.FORWARD) list = forwardList;
+            else if (type == Type.CORNER) list = cornerList;
+            else if (type == Type.START) list = startList;
+            else if (type == Type.END) list = endList;
+
+            return list != null ? GetTileInList(list, index, isLoaded) : null;
         }
 
-        private GameObject GetTileInList(List<GameObject> list, int index)
+        private GameObject GetTileInList(List<GameObject> list, int index, bool isLoaded = false)
         {
-            if (spawnOnlyFirstInList || (isCircuit && index == 0)) return list[0];
-            return list[_r.Next(0, list.Count)];
+            if (isLoaded) return list[_currentLevel.tileIndexes[index]];
+
+            int tileIndex = (spawnOnlyFirstInList || (isCircuit && index == 0)) ? 0 : _r.Next(0, list.Count);
+            _currentLevel.tileIndexes.Add(index, tileIndex);
+            return list[tileIndex];
         }
 
         private float GetAngle(Direction dirPrev, Direction dirNext, Type type)
@@ -290,6 +326,11 @@ namespace NEAT.Demo.SmartCarV2
         {
             if (current[0] == neighbour[0]) return current[1] > neighbour[1] ? Direction.LEFT : Direction.RIGHT;
             return current[0] > neighbour[0] ? Direction.UP : Direction.DOWN;
+        }
+
+        public Level GetCurrentLevel()
+        {
+            return _currentLevel;
         }
 
         public string GetPathText()

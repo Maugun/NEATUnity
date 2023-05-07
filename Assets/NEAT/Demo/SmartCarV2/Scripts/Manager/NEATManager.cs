@@ -7,14 +7,12 @@ namespace NEAT.Demo.SmartCarV2
     {
         [Header("NEAT")]
         public Transform spawn;                                                                 // Spawn
-        public bool generateLevel = false;                                                      // Generate Level
         public bool isMultiLevel = false;                                                       // Is Multi Level ?
         public bool start = false;                                                              // Start ?
         public bool saveBestGenome = false;                                                     // Save Best Genome to Json ?
-        public bool autoSaveBestGenome = true;                                                 // Auto Save Best Genome to Json ?
+        public bool autoSaveBestGenome = true;                                                  // Auto Save Best Genome to Json ?
         public LevelGenerator levelGenerator;                                                   // Level Generator
-        public CameraController cameraController;                                               // Camera Controller
-        public GenerateLevelUI ui;                                                              // UI
+        public UIManager ui;                                                                    // UI
         public NEATConfig config;                                                               // Config
 
         public float GenerationTimer { get; set; }                                              // Timer for current generation
@@ -25,13 +23,16 @@ namespace NEAT.Demo.SmartCarV2
         private int _deadCreatureNumber;                                                        // Dead Creature Number
         private List<int> _deadIdList;                                                          // List of Dead Creature's ids
         private Quaternion _spawnRotation;                                                      // SpawnRotation
+
         private bool _isNewLevel;
+        private int _currentLevel;
 
         private InnovationCounter _nodeInnovation = new InnovationCounter();                    // Node Innovation Counter
         private InnovationCounter _connectionInnovation = new InnovationCounter();              // Connection Innovation Counter
 
-        private SaveGenome _saveGenome;
-        private float _previousBestFitness = 0f;
+        private SaveManager _saveManager;
+        private float _bestSavedFitness;
+        private SaveData _saveData;
 
         private void Start()
         {
@@ -39,28 +40,27 @@ namespace NEAT.Demo.SmartCarV2
             _deadCreatureNumber = 0;
             _deadIdList = new List<int>();
             GenerationTimer = 0f;
-            _saveGenome = new SaveGenome();
+            _saveManager = new SaveManager();
+            _currentLevel = 1;
+            _saveData = new SaveData();
+            _isNewLevel = true;
+            _bestSavedFitness = 0f;
         }
 
         private void Update()
         {
             GenerationTimer += Time.deltaTime;
             ui.UpdateTimer(GenerationTimer);
+
             // Delay Start Simulation to let time to all Components to load
             if (start)
             {
-                // Generate Level
-                if (generateLevel)
-                {
-                    levelGenerator.GenerateLevel();
-                    spawn = levelGenerator.Spawn;
-                    _spawnRotation = levelGenerator.SpawnRotation;
-                    cameraController.CenterCameraOnMap(levelGenerator.width - 1, levelGenerator.height - 1, levelGenerator.tileSize);
-                }
-
+                InitSaveData();
                 SetStartingGenomeAndEvaluator();
+                SaveLevelToJson();
                 SpawnCreatures();
                 AddNNToCreatures();
+                ui.UpdateCurrentGenerationNumber(1);
                 StartSimulation();
                 start = false;
             }
@@ -74,6 +74,7 @@ namespace NEAT.Demo.SmartCarV2
             for (int i = 0; i < config.populationSize; i++)
             {
                 GameObject creature = (GameObject)Instantiate(config.creaturePrefab, spawn.position, _spawnRotation);
+                creature.GetComponent<DemoCarController>().Init(DemoCarController.SimulationType.NEAT);
                 creature.GetComponent<CreatureNeuralNetwork>().Reset(i);
                 creature.SetActive(false);
                 _creatureList.Add(creature.transform);
@@ -196,12 +197,11 @@ namespace NEAT.Demo.SmartCarV2
             ResetDeadCreatures();
             GetGenomeFitnessFromCreatureNN();
             EvaluateCurrentGeneration();
-            SaveToJson();
+            SaveGenomeToJson();
             LoadNextLevel();
             UpdateUI();
             ResetCreatures();
             AddNNToCreatures();
-            _previousBestFitness = _evaluator.BestFitness;
             StartSimulation();
         }
 
@@ -231,6 +231,7 @@ namespace NEAT.Demo.SmartCarV2
                 CreatureNeuralNetwork.BestNN.Time
             ));
             ui.UpdateBrainGraph(bestNN);
+            ui.UpdateCurrentGenerationNumber(_evaluator.GenerationNumber + 1);
         }
 
         private void StartSimulation()
@@ -287,24 +288,53 @@ namespace NEAT.Demo.SmartCarV2
             if (!isMultiLevel || CreatureNeuralNetwork.BestNN.CheckpointPassed < Checkpoint.totalCp) return;
 
             ui.GenerateNextLevel();
+            _currentLevel++;
+            SaveLevelToJson();
             _isNewLevel = true;
+            _bestSavedFitness = 0f;
         }
 
-        private void SaveToJson()
+        public void SetSpawnRotation(Quaternion spawnRotation)
+        {
+            _spawnRotation = spawnRotation;
+        }
+
+        #region Save
+        private void SaveGenomeToJson()
         {
             if (!saveBestGenome && !autoSaveBestGenome) return;
-            if (!saveBestGenome && autoSaveBestGenome && _evaluator.BestFitness <= _previousBestFitness && !_isNewLevel) return;
-
-            _saveGenome.ToJson(_evaluator.BestGenome, _nodeInnovation, _connectionInnovation, _evaluator.GenerationNumber);
+            if (!saveBestGenome && autoSaveBestGenome && _evaluator.BestFitness <= _bestSavedFitness && !_isNewLevel) return;
+            _bestSavedFitness = _evaluator.BestFitness;
+            _saveManager.GenomeToJson(_evaluator.BestGenome, _nodeInnovation, _connectionInnovation, _evaluator.GenerationNumber, _currentLevel);
         }
 
-        public void LoadFromJson()
+        // public void LoadGenomeFromJson()
+        // {
+        //     string[] paths = _saveManager.GetAllPathFromDirectory();
+        //     _startingGenome = _saveManager.GenomeFromJson(paths[0]);
+        //     _nodeInnovation.CurrentInnovation = _startingGenome._nodeInnovation;
+        //     _connectionInnovation.CurrentInnovation = _startingGenome._connectionInnovation;
+        // }
+
+        public void SaveLevelToJson()
         {
-            string[] paths = _saveGenome.GetAllPathFromDirectory();
-            _startingGenome = _saveGenome.FromJson(paths[0]);
-            _nodeInnovation.CurrentInnovation = _startingGenome._nodeInnovation;
-            _connectionInnovation.CurrentInnovation = _startingGenome._connectionInnovation;
+            _saveManager.LevelToJson(levelGenerator.GetCurrentLevel(), _currentLevel);
+            _saveData.levelSwitch.Add(_evaluator.GenerationNumber);
+            _saveManager.SaveDataToJson(_saveData);
         }
+
+        public void InitSaveData()
+        {
+            _saveData.activationType = (int)config.activationType;
+            _saveData.bias = config.bias;
+            _saveData.timeOut = config.timeOut;
+        }
+
+        public void IsTimeAttack(bool isTimeAttack)
+        {
+            _saveData.isTimeAttack = isTimeAttack;
+        }
+        #endregion
 
         public class CreatureEvaluator : Evaluator
         {
@@ -316,11 +346,6 @@ namespace NEAT.Demo.SmartCarV2
                 ) : base(config, startingGenome, nodeInnovation, connectionInnovation) { }
 
             protected override float EvaluateGenome(Genome genome) { return genome.Fitness; }
-        }
-
-        public void SetSpawnRotation(Quaternion spawnRotation)
-        {
-            _spawnRotation = spawnRotation;
         }
     }
 }

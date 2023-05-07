@@ -20,16 +20,19 @@ namespace NEAT.Demo.SmartCarV2
         None = 2
     }
 
-    public class GenerateLevelUI : MonoBehaviour
+    public class UIManager : MonoBehaviour
     {
         public CameraController cameraController;
         public NEATManager neatManager;
         public LevelGenerator levelGenerator;
+        public ReplayManager replayManager;
         public TimeScale timeScale;
+        public Canvas landingCanvas;
         public Canvas configurationCanvas;
         public Canvas levelCanvas;
         public Canvas carCanvas;
         public Canvas inGameCanvas;
+        public Canvas saveCanvas;
         public List<GameObject> carList;
         public Vector2Int maxLevelSize = new Vector2Int(14, 14);
         public Vector2Int minLevelSize = new Vector2Int(6, 6);
@@ -52,6 +55,7 @@ namespace NEAT.Demo.SmartCarV2
         public Text _checkpointNumberUI;
         public Text _isComplexLevelUI;
         public Text _isTimeAttackUI;
+        public Text _currentGenerationNumberUI;
 
         private BrainGraph _brainGraph;
         private RectTransform _brainRectTransform;
@@ -65,19 +69,47 @@ namespace NEAT.Demo.SmartCarV2
 
         private Dropdown _levelSizeDropdown;
         private Dropdown _levelOptionDropdown;
+        private Dropdown _saveDropdown;
+
+        private string[] _saveIds;
 
         private void Awake()
         {
             _currentSize = new Vector2Int();
-            configurationCanvas.gameObject.SetActive(true);
+            landingCanvas.gameObject.SetActive(true);
+            configurationCanvas.gameObject.SetActive(false);
             levelCanvas.gameObject.SetActive(false);
             carCanvas.gameObject.SetActive(false);
             inGameCanvas.gameObject.SetActive(false);
+            saveCanvas.gameObject.SetActive(false);
+            InitLandingUI();
             InitConfigurationCanvas();
             InitLevelCanvas();
             InitCarCanvas();
             InitGameCanvas();
+            InitSaveCanvas();
         }
+
+        #region Landing
+        private void InitLandingUI()
+        {
+            _saveIds = SaveManager.GetAllSaveIds();
+            Transform replayPathButton = landingCanvas.transform.Find("Replay");
+            if (_saveIds.Length == 0) replayPathButton.gameObject.SetActive(false);
+        }
+
+        public void SimulationPath()
+        {
+            landingCanvas.gameObject.SetActive(false);
+            configurationCanvas.gameObject.SetActive(true);
+        }
+
+        public void ReplayPath()
+        {
+            landingCanvas.gameObject.SetActive(false);
+            saveCanvas.gameObject.SetActive(true);
+        }
+        #endregion
 
         #region Configuration
         public void HideConfigurationCanvas()
@@ -247,6 +279,7 @@ namespace NEAT.Demo.SmartCarV2
         {
             neatManager.config.creaturePrefab = carList[index];
             _config.creaturePrefab.GetComponent<DemoCarController>().timeAttack = _timeAttack;
+            neatManager.IsTimeAttack(_timeAttack);
             carCanvas.gameObject.SetActive(false);
             levelCanvas.gameObject.SetActive(true);
         }
@@ -300,8 +333,13 @@ namespace NEAT.Demo.SmartCarV2
             _currentSize.x = _currentSize.x < maxLevelSize.x ? _currentSize.x + 1 : minLevelSize.x;
             _currentSize.y = _currentSize.y < maxLevelSize.y ? _currentSize.y + 1 : minLevelSize.y;
             GenerateLevel(_currentSize.x, _currentSize.y);
-            _currentLevel++;
+            IncreaseLevelNumber();
             UpdateLevelUI();
+        }
+
+        public void IncreaseLevelNumber()
+        {
+            _currentLevel++;
         }
 
         private void GenerateLevel(int w, int h)
@@ -323,9 +361,18 @@ namespace NEAT.Demo.SmartCarV2
         private void StartSimulation()
         {
             inGameCanvas.gameObject.SetActive(true);
+            replayManager.gameObject.SetActive(false);
             neatManager.isMultiLevel = _levelOptionDropdown.value == (int)LevelOption.Multi;
             UpdateLevelUI();
             neatManager.start = true;
+        }
+
+        private void StartReplay(string saveId)
+        {
+            inGameCanvas.gameObject.SetActive(true);
+            neatManager.gameObject.SetActive(false);
+            replayManager.StartReplay(saveId);
+            UpdateLevelUI();
         }
 
         private void InitGameCanvas()
@@ -345,6 +392,8 @@ namespace NEAT.Demo.SmartCarV2
             _checkpointNumberUI = inGameCanvas.transform.Find("CheckpointNumber").GetComponent<Text>();
             _isComplexLevelUI = inGameCanvas.transform.Find("IsComplexLevel").GetComponent<Text>();
             _isTimeAttackUI = inGameCanvas.transform.Find("IsTimeAttack").GetComponent<Text>();
+
+            _currentGenerationNumberUI = inGameCanvas.transform.Find("CurrentGenerationNumber").GetComponent<Text>();
 
             SpeedOne();
         }
@@ -417,7 +466,7 @@ namespace NEAT.Demo.SmartCarV2
         {
             _isComplexLevelUI.text = string.Format(
                 "Is Complex Level: {0}",
-                (!neatManager.levelGenerator.spawnOnlyFirstInList).ToString()
+                (!levelGenerator.spawnOnlyFirstInList).ToString()
             );
         }
 
@@ -429,12 +478,40 @@ namespace NEAT.Demo.SmartCarV2
             );
         }
 
-        private void UpdateLevelUI()
+        public void UpdateLevelUI()
         {
             UpdateLevelNumberUI();
             UpdateCheckpointNumberUI();
             UpdateIsComplexLevelUI();
             UpdateIsTimeAttackUI();
+        }
+
+        public void UpdateCurrentGenerationNumber(int currentGeneration)
+        {
+            _currentGenerationNumberUI.text = string.Format(
+                "Current Generation: {0}",
+                currentGeneration.ToString()
+            );
+        }
+        #endregion
+
+        #region Save
+        private void InitSaveCanvas()
+        {
+            _saveDropdown = saveCanvas.transform.Find("SaveDropdown").GetComponent<Dropdown>();
+            List<Dropdown.OptionData> saveDropdownOptions = new List<Dropdown.OptionData>();
+            for (int i = 0; i < _saveIds.Length; i++)
+            {
+                DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc).AddSeconds(int.Parse(_saveIds[i])).ToLocalTime();
+                saveDropdownOptions.Add(new Dropdown.OptionData(dateTime.ToString("yyyy-MM-dd HH:mm:ss")));
+            }
+            _saveDropdown.options = saveDropdownOptions;
+        }
+
+        public void SelectSave()
+        {
+            saveCanvas.gameObject.SetActive(false);
+            StartReplay(_saveIds[_saveDropdown.value]);
         }
         #endregion
     }
